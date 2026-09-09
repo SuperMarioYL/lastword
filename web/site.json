@@ -1,0 +1,316 @@
+{
+  "schema": 3,
+  "name": "LastWord",
+  "github": "https://github.com/SuperMarioYL/lastword",
+  "host": "lastword.lei6393.com",
+  "palette": "auto",
+  "lang": {
+    "primary": "en",
+    "toggle": true
+  },
+  "meta": {
+    "visual_profile": "neon-particle",
+    "demo_source": "docs/demo-results.json",
+    "content_version": "v0.1.0",
+    "implementation_version": "0.1.0"
+  },
+  "hero": {
+    "eyebrow": {
+      "en": "CLAUDE CODE TRANSCRIPTS · DETERMINISTIC · MIT",
+      "zh": "Claude Code 会话记录 · 确定性 · MIT"
+    },
+    "headline": {
+      "en": "Pin the verdict of a\n500-turn session",
+      "zh": "把 500 轮会话的\n最终结论钉住"
+    },
+    "sub": {
+      "en": "Multi-hour Claude Code sessions bury the operative answer in hundreds of turns of narration. LastWord reads the finished transcript and pins the verdict — the final answer, every file changed, the last command outcomes — each claim linked to the turn that produced it. Zero model calls.",
+      "zh": "数小时的 Claude Code 会话会把真正的答案埋进几百轮叙述里。LastWord 读取跑完的会话记录，把结论钉住——最终答案、每个改动文件、每条命令的最后结果——每个论断都链回产生它的那一轮。零模型调用。"
+    },
+    "href": "#quickstart",
+    "command": "lastword verdict",
+    "cta": {
+      "en": "Run the demo",
+      "zh": "运行示例"
+    },
+    "ctaGithub": {
+      "en": "View source",
+      "zh": "查看源码"
+    }
+  },
+  "scene": {
+    "kind": "neon-graph",
+    "fallback": "/assets/presentation/scene-dark.svg",
+    "fallbackLight": "/assets/presentation/scene-light.svg",
+    "caption": {
+      "en": "A finished session in, a pinned verdict out",
+      "zh": "跑完的会话进，钉住的结论出"
+    }
+  },
+  "advantages": [
+    {
+      "title": {
+        "en": "The answer, not another scroll",
+        "zh": "是答案，不是再滚一屏"
+      },
+      "body": {
+        "en": "A 500-turn run ends on one visible verdict: the leading paragraph of the agent's final answer, per-file +/− line counts, and how every command ended — with a pointer table saying exactly which turn backs each claim.",
+        "zh": "500 轮的运行以一屏结论收尾：agent 最终答案的起始段、逐文件 +/− 行数、每条命令的结果——指针表写明每个论断由哪一轮背书。"
+      }
+    },
+    {
+      "title": {
+        "en": "Deterministic, zero model calls",
+        "zh": "确定性，零模型调用"
+      },
+      "body": {
+        "en": "Extraction is rule-based over the transcript alone: same session, same span, every rerun. No drifting summaries, no interpretation — only what the transcript objectively contains.",
+        "zh": "抽取只依赖规则与会话本身：同一会话永远得到同一份 span。没有会漂移的总结，没有解读——只陈述会话里客观存在的内容。"
+      }
+    },
+    {
+      "title": {
+        "en": "An open, checkable format",
+        "zh": "开放且可校验的格式"
+      },
+      "body": {
+        "en": "The verdict-span/v0 document is a published format. Every claim carries a turn-linked pointer, and the spec defines the machine checks — pointer resolution and answer-diff — that any tool can enforce.",
+        "zh": "verdict-span/v0 是公开格式。每个论断都带轮次指针，规范定义了任何工具都能执行的机器校验——指针解析与答案 diff。"
+      }
+    }
+  ],
+  "story": {
+    "intro": {
+      "title": {
+        "en": "Five hundred turns in, one answer out",
+        "zh": "五百轮进去，一个结论出来"
+      },
+      "body": {
+        "en": "You come back to a terminal after a forty-five-minute Claude Code run. Somewhere in 500 turns of tool calls, retries and narration is the thing you actually need: what did it decide, what changed, do the tests pass. Prompt skills can ask the agent to lead with the answer — but nothing checks a finished run, and the last message is usually narration anyway. LastWord is the post-hoc layer: it reads the session JSONL the agent already wrote and derives the verdict deterministically, with every claim anchored to the turn that produced it.",
+        "zh": "四十五分钟的 Claude Code 运行结束，你回到终端。500 轮工具调用、重试与叙述里，藏着你真正要的东西：它决定了什么、改了什么、测试过没过。提示词技能可以“要求” agent 把答案放在最前面——但没有任何东西去校验一场跑完的会话，最后一条消息往往仍是叙述。LastWord 是事后的一层：它读取 agent 早已写下的会话 JSONL，用确定性规则推导出结论，每个论断都锚定在产生它的那一轮。"
+      }
+    },
+    "sections": [
+      {
+        "title": {
+          "en": "From raw scrollback to a pinned verdict",
+          "zh": "从原始滚屏到钉住的结论"
+        },
+        "body": {
+          "en": "latest finds the newest main session under ~/.claude/projects — the *.jsonl files one level inside a project directory; nested subagent transcripts are skipped. verdict parses the JSONL into turns: user and assistant entries, Edit/Write tool events, Bash tool_use/tool_result pairs matched by tool_use_id. Deterministic rules then derive the span: the leading paragraph of the last assistant answer, per-file +/− counts from edit payloads, and the last outcome of each distinct command — ok mirrors is_error, the exit code is parsed from \"Exit code N\" text only when a failure prints one. Every claim gets a pointer: turn number, message uuid, and a verbatim snippet.",
+          "zh": "latest 在 ~/.claude/projects 下找最新的主会话——项目目录一层的 *.jsonl 文件，嵌套的子代理记录会被跳过。verdict 把 JSONL 解析成轮次：user/assistant 条目、Edit/Write 工具事件、按 tool_use_id 配对的 Bash 调用与结果。随后由确定性规则推导 span：最后一条助手答案的起始段、由编辑内容算出的逐文件 +/− 行数、每条命令的最后一次结果——ok 镜像 is_error，退出码只在失败输出 \"Exit code N\" 时从文本解析。每个论断都拿到一个指针：轮次号、消息 uuid 和一段逐字引用。"
+        },
+        "image": {
+          "light": "/assets/presentation/process-light.svg",
+          "dark": "/assets/presentation/process-dark.svg",
+          "alt": {
+            "en": "The extraction loop: discover the newest session, parse turns, derive lead, changes and results, anchor every claim with a pointer",
+            "zh": "抽取循环：发现最新会话、解析轮次、推导答案与改动、为每个论断锚定指针"
+          },
+          "mobile": {
+            "light": "/assets/presentation/process-mobile-light.svg",
+            "dark": "/assets/presentation/process-mobile-dark.svg"
+          }
+        }
+      },
+      {
+        "title": {
+          "en": "One small binary, one pass, no model",
+          "zh": "一个小二进制，一遍扫描，没有模型"
+        },
+        "body": {
+          "en": "No daemon, no server, no network calls. transcript/claude.go turns JSONL into typed turns; transcript/discover.go owns newest-main-session lookup; verdictspan/extract.go holds the deterministic rules and the verdict-span/v0 types; render/terminal.go prints the span as canonical JSON or a readable panel. Credibility rests on determinism and verifiability — anything smarts-shaped is deferred to a later version.",
+          "zh": "没有守护进程、没有服务器、没有网络调用。transcript/claude.go 把 JSONL 变成带类型的轮次；transcript/discover.go 负责最新主会话查找；verdictspan/extract.go 承载确定性规则与 verdict-span/v0 类型；render/terminal.go 把 span 输出为规范 JSON 或可读面板。可信度建立在确定性与可校验性上——任何“聪明”的环节都留到后续版本。"
+        },
+        "image": {
+          "light": "/assets/presentation/architecture-light.svg",
+          "dark": "/assets/presentation/architecture-dark.svg",
+          "alt": {
+            "en": "Architecture: session JSONL parsed by transcript, extracted by verdictspan, rendered to stdout by render",
+            "zh": "架构：会话 JSONL 经 transcript 解析、verdictspan 抽取、render 输出到标准输出"
+          },
+          "mobile": {
+            "light": "/assets/presentation/architecture-mobile-light.svg",
+            "dark": "/assets/presentation/architecture-mobile-dark.svg"
+          }
+        }
+      },
+      {
+        "title": {
+          "en": "What plugs in today",
+          "zh": "今天能接什么"
+        },
+        "body": {
+          "en": "v0.1 reads finished Claude Code session JSONL — the format Claude Code already writes to ~/.claude/projects. Codex and Antigravity transcripts, live-run hooks during a session, and an MCP server exposing spans are roadmap, not shipped. The machine checks (lastword verify) and the pinned HTML viewer with click-to-jump provenance (lastword view) are milestones m2 and m3.",
+          "zh": "v0.1 读取跑完的 Claude Code 会话 JSONL——就是 Claude Code 已经写进 ~/.claude/projects 的那份格式。Codex 与 Antigravity 会话、会话中的实时钩子、暴露 span 的 MCP 服务都在路线图上，尚未交付。机器校验（lastword verify）与带点击跳转溯源的钉住式 HTML 查看器（lastword view）分别是里程碑 m2 与 m3。"
+        },
+        "image": {
+          "light": "/assets/presentation/integrations-light.svg",
+          "dark": "/assets/presentation/integrations-dark.svg",
+          "alt": {
+            "en": "Inputs and outputs: Claude Code session JSONL, Edit/Write events, Bash results in; verdict-span/v0 JSON out",
+            "zh": "输入与输出：Claude Code 会话 JSONL、Edit/Write 事件、Bash 结果进；verdict-span/v0 JSON 出"
+          },
+          "mobile": {
+            "light": "/assets/presentation/integrations-mobile-light.svg",
+            "dark": "/assets/presentation/integrations-mobile-dark.svg"
+          }
+        }
+      }
+    ],
+    "details": [
+      {
+        "title": {
+          "en": "Commands and options",
+          "zh": "命令与选项"
+        },
+        "body": {
+          "en": "verdict [file] prints the verdict-span/v0 JSON for a session — with no file it discovers the newest main session. --format text renders a readable panel instead. latest prints the newest session path. Both accept --projects-dir to point somewhere other than ~/.claude/projects.",
+          "zh": "verdict [file] 输出会话的 verdict-span/v0 JSON——不带文件时自动发现最新主会话。--format text 改为输出可读面板。latest 输出最新会话路径。两者都支持 --projects-dir 指定 ~/.claude/projects 以外的位置。"
+        },
+        "code": "lastword verdict                          # newest session, JSON\nlastword verdict session.jsonl --format text\nlastword latest --projects-dir ~/.claude/projects"
+      },
+      {
+        "title": {
+          "en": "Configuration and limits",
+          "zh": "配置与边界"
+        },
+        "body": {
+          "en": "No config file, no API keys, no telemetry — CLI flags only. Write events count added lines but claim nothing removed (the previous content is not in the transcript). Commands are compared after trimming whitespace, and only the last outcome of each command is claimed. The spec's pointer-resolution and answer-diff checks are defined but not yet evaluated by the CLI — that is milestone m2.",
+          "zh": "没有配置文件、没有 API key、没有遥测——只有命令行参数。Write 事件只计新增行、不主张删除行（旧内容不在会话记录里）。命令比较前会去除首尾空白，且只主张每条命令的最后一次结果。规范中的指针解析与答案 diff 校验已定义但 CLI 尚未执行——那是里程碑 m2。"
+        },
+        "code": "go test ./...\npython3 docs/render_presentation.py --repo ."
+      }
+    ]
+  },
+  "demo": {
+    "title": {
+      "en": "Recorded run",
+      "zh": "真实运行记录"
+    },
+    "note": {
+      "en": "Commands and outputs below are copied verbatim from a real 0.1.0 run on the bundled sanitized 500-turn fixture (testdata/sessions/session-500turn.jsonl) staged as a demo projects tree — no real session data. On your own machine, lastword verdict with no arguments reads your newest session under ~/.claude/projects through the same code path.",
+      "zh": "以下命令与输出逐字复制自 0.1.0 在内置脱敏 500 轮示例（testdata/sessions/session-500turn.jsonl）上的真实运行，示例被布置成一个演示 projects 目录——不含任何真实会话数据。在你自己的机器上，不带参数的 lastword verdict 会以同一代码路径读取 ~/.claude/projects 里你最新的会话。"
+    },
+    "source": "https://github.com/SuperMarioYL/lastword/blob/main/docs/demo-results.json",
+    "steps": [
+      {
+        "label": {
+          "en": "Build and find the session",
+          "zh": "构建并找到会话"
+        },
+        "body": {
+          "en": "The binary builds from source; latest locates the newest main session in the staged projects tree.",
+          "zh": "从源码构建二进制；latest 在布置好的 projects 目录里定位最新主会话。"
+        },
+        "image": "/assets/presentation/demo-0-light.svg",
+        "imageDark": "/assets/presentation/demo-0-dark.svg",
+        "command": "go build -o /tmp/lastword ./cmd/lastword && rm -rf /tmp/lwdemo && mkdir -p /tmp/lwdemo/projects/-Users-dev-work-api-server && cp testdata/sessions/session-500turn.jsonl /tmp/lwdemo/projects/-Users-dev-work-api-server/ && /tmp/lastword latest --projects-dir /tmp/lwdemo/projects",
+        "output": "/tmp/lwdemo/projects/-Users-dev-work-api-server/session-500turn.jsonl\n"
+      },
+      {
+        "label": {
+          "en": "Read the verdict",
+          "zh": "读出结论"
+        },
+        "body": {
+          "en": "One command over the finished session: answer, changes, results, and the pointer table anchoring each claim to its turn.",
+          "zh": "一条命令读完整场会话：答案、改动、结果，以及把每个论断锚到轮次的指针表。"
+        },
+        "image": "/assets/presentation/demo-1-light.svg",
+        "imageDark": "/assets/presentation/demo-1-dark.svg",
+        "command": "/tmp/lastword verdict --projects-dir /tmp/lwdemo/projects --format text",
+        "output": "discovered session: /tmp/lwdemo/projects/-Users-dev-work-api-server/session-500turn.jsonl\nLastWord — verdict-span/v0\nsession 7f3d2c8a-1e94-4b67-9c02-5a8d3f6b1e47\n\nANSWER\n  The login flake was a stale refresh-token cache key: rotating a session\n  changed the in-memory key but never invalidated the old entry, so roughly\n  one in five refreshes read a token the issuer had already rejected.\n\nCHANGES (7)\n  src/auth/token.go               +6   -6\n  src/auth/session.go             +5   -3\n  internal/api/middleware.go      +8   -5\n  tests/refresh_rotation_test.go  +13  -0\n  internal/api/server.go          +1   -1\n  docs/auth.md                    +5   -0\n  README.md                       +5   -0\n\nRESULTS (6)\n  [ok] go test ./...\n  [ok] gofmt -w .\n  [ok] go vet ./...\n  [FAIL (exit 2)] npm --prefix web run build\n  [ok] git log --oneline -3 -- web/\n  [ok] go test ./... -run Auth\n\nPOINTERS (14)\n  #500  final   answer.lead\n  #8    edit    answer.changes[src/auth/token.go]\n  #8    edit    answer.changes[src/auth/session.go]\n  #11   edit    answer.changes[internal/api/middleware.go]\n  #13   edit    answer.changes[tests/refresh_rotation_test.go]\n  #37   edit    answer.changes[internal/api/server.go]\n  #40   edit    answer.changes[docs/auth.md]\n  #40   edit    answer.changes[README.md]\n  #16   result  answer.results[go test ./...]\n  #39   result  answer.results[gofmt -w .]\n  #44   result  answer.results[go vet ./...]\n  #45   result  answer.results[npm --prefix web run build]\n  #47   result  answer.results[git log --oneline -3 -- web/]\n  #48   result  answer.results[go test ./... -run Auth]\n\nchecks: not evaluated (verify arrives with milestone m2)\n"
+      },
+      {
+        "label": {
+          "en": "The JSON contract",
+          "zh": "JSON 契约"
+        },
+        "body": {
+          "en": "The same verdict as the open verdict-span/v0 document (excerpt) — the format other tools can consume and check.",
+          "zh": "同一份结论，以公开的 verdict-span/v0 文档输出（节选）——供其他工具消费与校验的格式。"
+        },
+        "image": "/assets/presentation/demo-2-light.svg",
+        "imageDark": "/assets/presentation/demo-2-dark.svg",
+        "command": "/tmp/lastword verdict testdata/sessions/session-500turn.jsonl",
+        "output": "{\n  \"schema\": \"verdict-span/v0\",\n  \"session\": \"7f3d2c8a-1e94-4b67-9c02-5a8d3f6b1e47\",\n  \"answer\": {\n    \"lead\": \"The login flake was a stale refresh-token cache key: rotating a session changed the in-memory key but never invalidated the old entry, so roughly one in five refreshes read a token the issuer had already rejected.\",\n    \"changes\": [\n      {\n        \"file\": \"src/auth/token.go\",\n        \"added\": 6,\n        \"removed\": 6\n      },\n      {\n        \"file\": \"src/auth/session.go\",\n        \"added\": 5,\n        \"removed\": 3\n      },\n      {\n        \"file\": \"internal/api/middleware.go\",\n        \"added\": 8,\n        \"removed\": 5\n      },\n      {\n        \"file\": \"tests/refresh_rotation_test.go\",\n        \"added\": 13,\n        \"removed\": 0\n      },\n      {\n        \"file\": \"internal/api/server.go\",\n        \"added\": 1,\n        \"removed\": 1\n      },\n      {\n        \"file\": \"docs/auth.md\",\n        \"added\": 5,\n        \"removed\": 0\n      },\n      {\n        \"file\": \"README.md\",\n        \"added\": 5,\n        \"removed\": 0\n      }\n    ],\n    \"results\": [\n      {\n        \"kind\": \"command\",\n        \"cmd\": \"go test ./...\",\n        \"ok\": true,\n        \"exit_code\": null\n      },\n      {\n        \"kind\": \"command\",\n        \"cmd\": \"gofmt -w .\",\n        \"ok\": true,\n        \"exit_code\": null\n      },\n      {\n        \"kind\": \"command\",\n        \"cmd\": \"go vet ./...\",\n        \"ok\": true,\n        \"exit_code\": null\n      },\n      {\n        \"kind\": \"command\",\n        \"cmd\": \"npm --prefix web run build\",\n        \"ok\": false,\n        \"exit_code\": 2\n      },\n      {\n        \"kind\": \"command\",\n        \"cmd\": \"git log --oneline -3 -- web/\",\n        \"ok\": true,\n        \"exit_code\": null\n      },\n      {\n        \"kind\": \"command\",\n        \"cmd\": \"go test ./... -run Auth\",\n        \"ok\": true,\n        \"exit_code\": null\n      }\n    ]\n  },\n  \"pointers\": [\n    {\n      \"turn\": 500,\n      \"uuid\": \"00000000-0000-4000-8000-0000000001f7\",\n      \"kind\": \"final\",\n      \"snippet\": \"The login flake was a stale refresh-token cache key: rotating a session changed the in-memory key but never invalidated …\",\n      \"provenance\": \"answer.lead\"\n    },\n    {\n      \"turn\": 8,\n      \"uuid\": \"00000000-0000-4000-8000-00000000000b\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Confirmed: the flake is a stale cache key. I'll key the cache on the session fingerprint and invalidate on rotation.\",\n      \"provenance\": \"answer.changes[src/auth/token.go]\"\n    },\n    {\n      \"turn\": 8,\n      \"uuid\": \"00000000-0000-4000-8000-00000000000b\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Confirmed: the flake is a stale cache key. I'll key the cache on the session fingerprint and invalidate on rotation.\",\n      \"provenance\": \"answer.changes[src/auth/session.go]\"\n    },\n    {\n      \"turn\": 11,\n      \"uuid\": \"00000000-0000-4000-8000-00000000000e\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Wiring the middleware to carry the fingerprint through.\",\n      \"provenance\": \"answer.changes[internal/api/middleware.go]\"\n    },\n    {\n      \"turn\": 13,\n      \"uuid\": \"00000000-0000-4000-8000-000000000010\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Adding a regression test that rotates fifty sessions.\",\n      \"provenance\": \"answer.changes[tests/refresh_rotation_test.go]\"\n    },\n    {\n      \"turn\": 37,\n      \"uuid\": \"00000000-0000-4000-8000-000000000028\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Wiring the token path into the server router and formatting.\",\n      \"provenance\": \"answer.changes[internal/api/server.go]\"\n    },\n    {\n      \"turn\": 40,\n      \"uuid\": \"00000000-0000-4000-8000-00000000002b\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Updating the docs to match the new cache behavior.\",\n      \"provenance\": \"answer.changes[docs/auth.md]\"\n    },\n    {\n      \"turn\": 40,\n      \"uuid\": \"00000000-0000-4000-8000-00000000002b\",\n      \"kind\": \"edit\",\n      \"snippet\": \"Updating the docs to match the new cache behavior.\",\n      \"provenance\": \"answer.changes[README.md]\"\n    },\n    {\n      \"turn\": 16,\n      \"uuid\": \"00000000-0000-4000-8000-000000000013\",\n      \"kind\": \"result\",\n      \"snippet\": \"ok  \\tgithub.com/dev/api-server/auth\\t0.518s\\nok  \\tgithub.com/dev/api-server/api\\t1.204s\",\n      \"provenance\": \"answer.results[go test ./...]\"\n    },\n    {\n      \"turn\": 39,\n      \"uuid\": \"00000000-0000-4000-8000-00000000002a\",\n      \"kind\": \"result\",\n      \"snippet\": \"\",\n      \"provenance\": \"answer.results[gofmt -w .]\"\n    },\n    {\n      \"turn\": 44,\n      \"uuid\": \"00000000-0000-4000-8000-00000000002f\",\n      \"kind\": \"result\",\n      \"snippet\": \"no issues found\",\n      \"provenance\": \"answer.results[go vet ./...]\"\n    },\n    {\n      \"turn\": 45,\n      \"uuid\": \"00000000-0000-4000-8000-000000000030\",\n      \"kind\": \"result\",\n      \"snippet\": \"Exit code 2\\nweb/webpack.config.js: missing resolve.fallback config\",\n      \"provenance\": \"answer.results[npm --prefix web run build]\"\n    },\n    {\n      \"turn\": 47,\n      \"uuid\": \"00000000-0000-4000-8000-000000000032\",\n      \"kind\": \"result\",\n      \"snippet\": \"9f2c1ab chore: bump deps\\n44d0e87 feat: dashboard v2\",\n      \"provenance\": \"answer.results[git log --oneline -3 -- web/]\"\n    },\n    {\n      \"turn\": 48,\n      \"uuid\": \"00000000-0000-4000-8000-000000000033\",\n      \"kind\": \"result\",\n      \"snippet\": \"ok  \\tgithub.com/dev/api-server/auth\\t0.411s\",\n      \"provenance\": \"answer.results[go test ./... -run Auth]\"\n    }\n  ],\n  \"checks\": null\n}\n"
+      }
+    ]
+  },
+  "quickstart": {
+    "title": {
+      "en": "From clone to first verdict",
+      "zh": "从克隆到第一份结论"
+    },
+    "body": {
+      "en": "Requires Go 1.24+. The bundled 500-turn fixture works out of the box; your own sessions need nothing but a finished Claude Code run.",
+      "zh": "需要 Go 1.24+。内置的 500 轮示例开箱即用；你自己的会话只需要一场跑完的 Claude Code。"
+    },
+    "steps": [
+      {
+        "title": {
+          "en": "Install",
+          "zh": "安装"
+        },
+        "code": "git clone https://github.com/SuperMarioYL/lastword.git\ncd lastword\ngo build -o /tmp/lastword ./cmd/lastword"
+      },
+      {
+        "title": {
+          "en": "Run it on the bundled 500-turn session",
+          "zh": "在内置 500 轮示例上运行"
+        },
+        "code": "/tmp/lastword verdict testdata/sessions/session-500turn.jsonl --format text"
+      },
+      {
+        "title": {
+          "en": "Run it on your own session",
+          "zh": "在你自己的会话上运行"
+        },
+        "code": "/tmp/lastword latest    # newest session under ~/.claude/projects\n/tmp/lastword verdict    # its verdict span, discovered automatically"
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "en": "v0.1 reads finished Claude Code session JSONL only — no Codex or Antigravity transcripts, no live-run hooks during a session.",
+      "zh": "v0.1 只读取跑完的 Claude Code 会话 JSONL——不支持 Codex 与 Antigravity 会话，也不做会话中的实时钩子。"
+    },
+    {
+      "en": "The spec's pointer-resolution and answer-diff checks are defined but not yet evaluated; lastword verify (milestone m2) runs them with a pass/fail exit code.",
+      "zh": "规范中的指针解析与答案 diff 校验已定义但尚未执行；lastword verify（里程碑 m2）会以通过/失败退出码运行它们。"
+    },
+    {
+      "en": "No HTML viewer yet — the pinned panel with click-to-jump provenance is milestone m3; v0.1 prints JSON and a terminal panel.",
+      "zh": "尚无 HTML 查看器——带点击跳转溯源的钉住面板属于里程碑 m3；v0.1 输出 JSON 与终端面板。"
+    },
+    {
+      "en": "Extraction is deterministic by design: no LLM-generated summaries, no interpretation; a span claims only what the transcript objectively contains.",
+      "zh": "抽取在设计上是确定性的：没有 LLM 生成的总结、没有解读；span 只主张会话中客观存在的内容。"
+    },
+    {
+      "en": "No config file, no accounts, no telemetry — CLI flags only, everything local.",
+      "zh": "没有配置文件、没有账号、没有遥测——只有命令行参数，一切都在本地。"
+    }
+  ],
+  "cta": {
+    "headline": {
+      "en": "The last word, every session",
+      "zh": "每一场会话，都有最后一句话"
+    },
+    "sub": {
+      "en": "Free, MIT, no accounts, no telemetry.",
+      "zh": "免费、MIT、无账号、无遥测。"
+    },
+    "button": {
+      "en": "Get started on GitHub",
+      "zh": "在 GitHub 上开始"
+    }
+  },
+  "footer": {
+    "tag": {
+      "en": "Finished sessions in, a pinned verdict out — no model in the loop.",
+      "zh": "跑完的会话进，钉住的结论出——中间没有模型。"
+    }
+  }
+}

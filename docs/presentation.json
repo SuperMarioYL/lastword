@@ -1,0 +1,78 @@
+{
+  "name": "LastWord",
+  "tagline": "Pin the verdict of a finished Claude Code session — answer, changes, results, and the turns that produced them.",
+  "architecture": {
+    "title": "One pass over a finished transcript, no model in the loop",
+    "nodes": [
+      {
+        "title": "Session JSONL",
+        "detail": "~/.claude/projects/<project>/<uuid>.jsonl"
+      },
+      {
+        "title": "transcript",
+        "detail": "JSONL to turns, tool events, results"
+      },
+      {
+        "title": "discover",
+        "detail": "newest main-session lookup"
+      },
+      {
+        "title": "verdictspan",
+        "detail": "deterministic rules to a span"
+      },
+      {
+        "title": "render",
+        "detail": "verdict-span/v0 JSON and text"
+      }
+    ],
+    "edges": [
+      [0, 1],
+      [1, 3],
+      [2, 3],
+      [3, 4]
+    ]
+  },
+  "process": {
+    "title": "From raw scrollback to a pinned verdict",
+    "steps": [
+      {
+        "title": "Discover",
+        "detail": "newest main session; subagent transcripts skipped"
+      },
+      {
+        "title": "Extract",
+        "detail": "lead paragraph, per-file +/− counts, last command outcomes"
+      },
+      {
+        "title": "Anchor",
+        "detail": "every claim gets a turn pointer with a verbatim snippet"
+      }
+    ],
+    "result": "Deterministic: same session, same span, zero model calls."
+  },
+  "integrations": {
+    "title": "What reads and writes the span today",
+    "items": [
+      {
+        "title": "Claude Code session JSONL",
+        "detail": "input, finished sessions only"
+      },
+      {
+        "title": "Edit / Write tool events",
+        "detail": "per-file added and removed line counts"
+      },
+      {
+        "title": "Bash use + result pairs",
+        "detail": "ok from is_error, exit code from text"
+      },
+      {
+        "title": "verdict-span/v0 JSON",
+        "detail": "the open output format"
+      },
+      {
+        "title": "500-turn fixture",
+        "detail": "sanitized session in testdata/sessions/"
+      }
+    ]
+  }
+}

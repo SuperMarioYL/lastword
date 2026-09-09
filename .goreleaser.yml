@@ -1,0 +1,61 @@
+version: 2
+
+builds:
+  - id: lastword
+    main: ./cmd/lastword
+    binary: lastword
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - README.zh-CN.md
+      - LICENSE
+      - CHANGELOG.md
+      - docs/verdict-span-v0.md
+      - examples/quickstart.sh
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+  groups:
+    - title: "New"
+      regexp: "^feat:"
+      order: 0
+    - title: "Fixes"
+      regexp: "^fix:"
+      order: 1
+    - title: "Other"
+      order: 999
+
+release:
+  draft: false
+  prerelease: auto
+  name_template: "{{ .Tag }}"

@@ -1,0 +1,34 @@
+# build artifacts
+/lastword
+/lastword.exe
+/dist/
+*.test
+*.out
+coverage.txt
+
+# go workspace scratch
+/go.work
+/go.work.sum
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# local HTML output of the viewer
+lastword.html
+
+# build scratch
+.builder_*
+.build_metadata*
+.stage_*
+.spawn.*
+_build_ctx.json
+PUBLISH_BLOCKED.md
+BUILD_SETUP_NEXT_STEPS.md
+DRIFT_REPORT.md
+*_BLOCKED.md
+.claude/
+CLAUDE.md

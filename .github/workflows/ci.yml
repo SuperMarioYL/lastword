@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -cover ./...
+
+      - name: Build the CLI binary
+        run: go build -o /tmp/lastword ./cmd/lastword
+
+      - name: Smoke — verdict over the bundled sessions
+        run: |
+          set -euo pipefail
+          # The 500-turn fixture: panel and JSON agree on the verdict.
+          /tmp/lastword verdict testdata/sessions/session-500turn.jsonl --format text \
+            | grep -F "The login flake was a stale refresh-token cache key"
+          /tmp/lastword verdict testdata/sessions/session-500turn.jsonl \
+            | grep -F '"schema": "verdict-span/v0"'
+          # Edge fixture: retried command claims its last outcome.
+          /tmp/lastword verdict testdata/sessions/session-edges.jsonl --format text \
+            | grep -F "[ok] make check"
+          # Discovery over a staged projects tree.
+          mkdir -p /tmp/ci/projects/-tmp-ci-app
+          cp testdata/sessions/session-minimal.jsonl /tmp/ci/projects/-tmp-ci-app/
+          test "$(/tmp/lastword latest --projects-dir /tmp/ci/projects)" \
+            = "/tmp/ci/projects/-tmp-ci-app/session-minimal.jsonl"
+          /tmp/lastword verdict --projects-dir /tmp/ci/projects \
+            | grep -F '"session": "c2a9d1ef-33b7-4f0a-8d5e-91c7b6a2f801"'
