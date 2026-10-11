@@ -80,8 +80,54 @@ func WriteText(w io.Writer, span *verdictspan.Span) error {
 		}
 		tw.Flush()
 	}
-	b.WriteString("\nchecks: not evaluated (verify arrives with milestone m2)\n")
 
+	b.WriteString("\nchecks: ")
+	if span.Checks == nil {
+		b.WriteString("not evaluated — run: lastword verify\n")
+	} else {
+		parts := make([]string, len(span.Checks))
+		for i, c := range span.Checks {
+			state := "pass"
+			if !c.Pass {
+				state = "FAIL"
+			}
+			parts[i] = c.Name + " " + state
+		}
+		b.WriteString(strings.Join(parts, ", ") + "\n")
+	}
+
+	_, err := io.WriteString(w, b.String())
+	return err
+}
+
+// WriteVerify prints the machine-check report for an evaluated span: one
+// line per check with its detail, then the overall verdict.
+func WriteVerify(w io.Writer, span *verdictspan.Span) error {
+	var b strings.Builder
+	b.WriteString("LastWord — verify " + span.Schema + "\n")
+	b.WriteString("session " + span.Session + "\n\n")
+	for _, c := range span.Checks {
+		state := "pass"
+		if !c.Pass {
+			state = "FAIL"
+		}
+		fmt.Fprintf(&b, "  [%s] %s", state, c.Name)
+		if c.Detail != "" {
+			fmt.Fprintf(&b, " — %s", c.Detail)
+		}
+		b.WriteString("\n")
+	}
+	passed := 0
+	for _, c := range span.Checks {
+		if c.Pass {
+			passed++
+		}
+	}
+	if len(span.Checks) > 0 && passed == len(span.Checks) {
+		b.WriteString("\nverdict: PASS\n")
+	} else {
+		b.WriteString("\nverdict: FAIL\n")
+	}
 	_, err := io.WriteString(w, b.String())
 	return err
 }

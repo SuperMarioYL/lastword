@@ -11,7 +11,7 @@
 数小时的 Claude Code 会话会把真正的答案埋进几百轮叙述里。LastWord 读取跑完的会话记录，把结论钉住——最终决定、改了什么、以及指向产生它们的确切轮次的可机校验指针——让一场 500 轮的运行以一屏可见的答案收尾，而不是再来一次滚动。
 
 [![CI](https://github.com/SuperMarioYL/lastword/actions/workflows/ci.yml/badge.svg)](https://github.com/SuperMarioYL/lastword/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.1.0-318347)](https://github.com/SuperMarioYL/lastword/releases)
+[![Version](https://img.shields.io/badge/version-0.2.0-318347)](https://github.com/SuperMarioYL/lastword/releases)
 [![Go](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-318347)](./LICENSE)
 ![Local](https://img.shields.io/badge/local_only-no_telemetry-318347)
@@ -41,6 +41,8 @@ go build -o /tmp/lastword ./cmd/lastword
 
 ```bash
 /tmp/lastword verdict testdata/sessions/session-500turn.jsonl --format text
+/tmp/lastword verify  testdata/sessions/session-500turn.jsonl   # 机器校验
+/tmp/lastword view    testdata/sessions/session-500turn.jsonl   # 钉住式 HTML 查看器
 ```
 
 然后在你自己的机器上跑——Claude Code 早已替你把会话写好了：
@@ -50,13 +52,13 @@ go build -o /tmp/lastword ./cmd/lastword
 /tmp/lastword verdict   # 它的 verdict span，自动发现
 ```
 
-v0.1 的完整闭环就这些：一条命令进，一份结论出。上面三行同样放在 [examples/quickstart.sh](examples/quickstart.sh) 里。
+完整闭环就这些：一条命令进，一份结论出——`verify` 校验它，`view` 钉住它。上面这些行同样放在 [examples/quickstart.sh](examples/quickstart.sh) 里。
 
 ## <img src="assets/icons/video.svg" width="22" alt=""> 运行记录
 
-以下命令与输出逐字复制自 `0.1.0` 的真实运行——完整记录在 [docs/demo-results.json](docs/demo-results.json)。被测会话是内置的脱敏示例（`testdata/sessions/session-500turn.jsonl`，500 个计数轮次），布置成一个演示 projects 目录；在你自己的机器上，同样的命令会以完全相同的代码路径读取 `~/.claude/projects` 里你最新的会话。
+以下命令与输出逐字复制自 `0.2.0` 的真实运行——完整记录在 [docs/demo-results.json](docs/demo-results.json)。被测会话是内置的脱敏示例（`testdata/sessions/session-500turn.jsonl`，500 个计数轮次），布置成一个演示 projects 目录；在你自己的机器上，同样的命令会以完全相同的代码路径读取 `~/.claude/projects` 里你最新的会话。
 
-![Before: 503 lines of raw session JSONL. After: lastword verdict pins the answer, changes and command outcomes with pointers to the turns that produced them — the click-to-jump viewer lands with milestone m3.](docs/demo-500turn.gif)
+![Before: 503 lines of raw session JSONL. After: lastword verdict pins the answer, changes and command outcomes with pointers to the turns that produced them — and lastword view pins the same verdict over the full transcript with click-to-jump provenance.](docs/demo-500turn.gif)
 
 `lastword verdict --format text` 打出的结论面板：
 
@@ -102,7 +104,19 @@ POINTERS (14)
   #47   result  answer.results[git log --oneline -3 -- web/]
   #48   result  answer.results[go test ./... -run Auth]
 
-checks: not evaluated (verify arrives with milestone m2)
+checks: not evaluated — run: lastword verify
+```
+
+对同一份 span 的机器校验，由 `lastword verify` 打出（退出码 0，可脚本化）：
+
+```text
+LastWord — verify verdict-span/v0
+session 7f3d2c8a-1e94-4b67-9c02-5a8d3f6b1e47
+
+  [pass] pointer_resolution — 14/14 pointers resolve
+  [pass] answer_diff — 7 files claimed, 7 edited, 0 unclaimed
+
+verdict: PASS
 ```
 
 注意原始会话记录里看不出来的细节：`go test ./...` 在会话早期失败过一次，修复后才通过——span 只主张**最后一次**结果，即第 16 轮那次通过。`npm` 构建失败则带着它打印出的退出码被如实主张。同一份结论，以公开的 JSON 文档输出（此处为开头部分；完整文档见运行记录）：
@@ -153,7 +167,7 @@ checks: not evaluated (verify arrives with milestone m2)
 LastWord 用推导出的契约替代请求。抽取是确定性的——绝不调用模型——两个新元素让它成为原语而非又一份摘要：
 
 - **指针**：答案里的每个论断都带一个可解析、带逐字引用的引用，指向产生它的那一轮。`answer.changes[src/auth/token.go]` 不是感觉，是第 8 轮，附原文。
-- **校验语义**：规范定义了 span 何为有效——每个指针必须解析到真实轮次，主张的 diff 必须与会话里的实际编辑事件一致。`lastword verify`（里程碑 m2）将带着通过/失败退出码强制执行这一切。
+- **校验语义**：规范定义了 span 何为有效——每个指针必须解析到真实轮次，主张的 diff 必须与会话里的实际编辑事件一致。`lastword verify` 带着通过/失败退出码强制执行这一切。
 
 ## <img src="assets/icons/schema.svg" width="22" alt=""> 工作原理
 
@@ -165,7 +179,8 @@ LastWord 用推导出的契约替代请求。抽取是确定性的——绝不�
       |
       v
  transcript/claude.go    JSONL -> 轮次 {uuid, role, text, toolUses, toolResults}
-                        （sidechain 条目与簿记类型被跳过）
+                        （sidechain 条目与簿记类型被跳过；被截断的最后一行
+                         跳过，中段损坏仍然报错）
  transcript/discover.go  最新主会话查找
       |
       v
@@ -174,11 +189,13 @@ LastWord 用推导出的契约替代请求。抽取是确定性的——绝不�
         changes     = 聚合的 Edit/Write 工具事件
         results     = 每条命令的最后结果：ok 镜像 is_error，
                       退出码仅在出现 "Exit code N" 文本时解析
+ verdictspan/verify.go   pointer_resolution + answer_diff -> checks[]
  verdictspan/schema.go  verdict-span/v0 类型 + 公开格式参考
       |
-      v
- render/terminal.go     `lastword verdict` 标准输出——规范 JSON，
-                        或 --format text 的可读面板
+      +---> render/terminal.go   `lastword verdict` 标准输出——规范 JSON，
+      |                          或 --format text 的可读面板；`lastword
+      |                          verify` 打印校验报告，退出码 0/1
+      +---> render/viewer.go     `lastword view`  单文件 HTML（内嵌模板）
 ```
 
 <picture>
@@ -199,7 +216,7 @@ LastWord 用推导出的契约替代请求。抽取是确定性的——绝不�
 
 ## <img src="assets/icons/file-text.svg" width="22" alt=""> verdict-span 格式
 
-span 是一份公开的开放格式——[docs/verdict-span-v0.md](docs/verdict-span-v0.md)——其他工具可以同样地生成与消费它。格式本身与具体 agent 无关；本 CLI 的 v0.1 只读取 Claude Code 会话 JSONL。
+span 是一份公开的开放格式——[docs/verdict-span-v0.md](docs/verdict-span-v0.md)——其他工具可以同样地生成与消费它。格式本身与具体 agent 无关；本 CLI 只读取 Claude Code 会话 JSONL。
 
 ```json
 {
@@ -229,12 +246,16 @@ span 是一份公开的开放格式——[docs/verdict-span-v0.md](docs/verdict-
 | 命令 | 作用 |
 | --- | --- |
 | `lastword verdict [file]` | 抽取并打印 verdict span；不带文件时自动发现最新主会话 |
+| `lastword verify [file]` | 对 span 执行指针解析与答案 diff 校验；退出码 0/1 |
+| `lastword view [file]` | 写出单文件 HTML 查看器（钉住的结论、点击跳转溯源） |
 | `lastword latest` | 打印最新主会话记录的路径 |
 
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--format` | `json` | `json`——规范 verdict-span/v0 文档；`text`——可读面板 |
-| `--projects-dir` | `~/.claude/projects` | Claude Code projects 根目录，供发现使用 |
+| 选项 | 适用命令 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--format` | `verdict`、`verify` | `json` / `text` | `json`——规范 verdict-span/v0 文档（`verify` 会填上 `checks`）；`text`——可读面板 / 校验报告 |
+| `--projects-dir` | 全部发现场景 | `~/.claude/projects` | Claude Code projects 根目录，不带文件时使用 |
+| `--out` | `view` | `lastword.html` | 写出的 HTML 查看器路径 |
+| `--open` | `view` | 关 | 写完后尽力用浏览器打开 |
 
 主会话是项目目录一层的 `*.jsonl` 文件；更深层的（子代理记录）一律排除。自动发现时，解析出的路径打印到 stderr，stdout 保持机器可读。
 
@@ -253,24 +274,25 @@ span 是一份公开的开放格式——[docs/verdict-span-v0.md](docs/verdict-
 | 改动主张 | `Edit` 与 `Write` 工具事件，逐文件聚合 +/− 行数 |
 | 结果主张 | 按 `tool_use_id` 配对的 `Bash` 调用与结果；每条不同命令的最后结果 |
 | 指针 | 轮次号 + 消息 uuid + 逐字引用，覆盖答案、每个文件、每条命令 |
+| 校验 | `lastword verify` 执行 `pointer_resolution` 与 `answer_diff`，退出码 0/1 |
+| 查看器 | 单文件 HTML（`lastword view`）：结论钉住、点击跳转溯源、无 CDN |
 | 输出 | `verdict-span/v0` JSON（默认）与终端面板（`--format text`） |
 | 示例 | `testdata/sessions/` 下的脱敏合成会话，含一场 500 轮运行 |
 
 ## <img src="assets/icons/settings.svg" width="22" alt=""> 配置与边界
 
-- **v0.1 只读取跑完的 Claude Code 会话。** 不支持 Codex 与 Antigravity 会话，不做会话中的实时钩子，不做跨会话搜索或索引。
-- **校验已定义、尚未执行。** 规范中的指针解析与答案 diff 语义随 `docs/verdict-span-v0.md` 发布；带通过/失败退出码的 `lastword verify` 是里程碑 m2，因此 v0.1 输出 `"checks": null`。
-- **还没有查看器。** 带点击跳转溯源的钉住式 HTML 面板是里程碑 m3；v0.1 输出 JSON 与终端面板。
+- **v0.2 只读取跑完的 Claude Code 会话。** 不支持 Codex 与 Antigravity 会话，不做会话中的实时钩子，不做跨会话搜索或索引。
+- **校验由 `lastword verify` 执行。** 单纯抽取输出 `"checks": null`——未经评估的 span 从不主张通过；`verify` 填上 `pointer_resolution` 与 `answer_diff` 并以 0/1 退出。被截到 120 字符上限的引用带省略号，verify 会在该轮内容的行边界上匹配它。
+- **查看器就是一个 HTML 文件。** `lastword view` 内嵌一切——内联 CSS、无 CDN、无外部请求、无 JS 构建步骤——打开即见钉在完整会话之上的结论。
 - **设计上就是确定性的。** 没有 LLM 生成的总结、没有解读——span 只主张会话中客观存在的内容。`Write` 事件只计新增行、不主张删除行（旧内容不在会话记录里）。
 - **没有配置文件、没有遥测、没有模型调用。** 只有命令行参数；一切都在本地。
 
 ## <img src="assets/icons/route.svg" width="22" alt=""> 路线图
 
-- [x] **v0.1（当前，m1）**——轮次解析、最新会话发现、确定性 verdict-span 抽取（答案、改动、结果、指针）、JSON + 终端输出、公开格式规范、500 轮示例
-- [ ] **m2**——`lastword verify`：指针解析与答案 diff 机器校验，带通过/失败退出码，并在十个真实会话上测量
-- [ ] **m3**——`lastword view`：自包含 HTML 查看器，结论钉住、点击论断跳转到产生它的轮次，以及前后对比的演示录制
+- [x] **v0.1（m1）**——轮次解析、最新会话发现、确定性 verdict-span 抽取（答案、改动、结果、指针）、JSON + 终端输出、公开格式规范、500 轮示例
+- [x] **v0.2（m2 + m3）**——`lastword verify`：指针解析与答案 diff 机器校验，带通过/失败退出码；`lastword view`：自包含 HTML 查看器，结论钉住、点击论断跳转到产生它的轮次——外加两处抽取修复（按字符截断引用、容忍被截断的末行）
 
-v0.1 不做、也不急着做：实时运行强制、Codex/Antigravity 会话支持、LLM 摘要、暴露 span 的 MCP 服务、IDE 扩展、遥测。格式与 CLI 先行；地基（开放的 JSONL 会话记录）早已存在。
+暂不做、也不急着做：实时运行强制、Codex/Antigravity 会话支持、LLM 摘要、暴露 span 的 MCP 服务、IDE 扩展、遥测。格式与 CLI 先行；地基（开放的 JSONL 会话记录）早已存在。
 
 ## <img src="assets/icons/license.svg" width="22" alt=""> 开发与许可
 

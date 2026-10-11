@@ -101,6 +101,12 @@ type rawBlock struct {
 // are not JSON objects, or entry types other than user/assistant, are not
 // counted; sidechain entries are skipped because they belong to subagent
 // transcripts, not the main conversation.
+//
+// One malformed line is tolerated: a torn final entry. Sessions are read
+// post-hoc while discovery prefers the newest file — usually the session
+// still being written, whose trailing line can be cut mid-write. That entry
+// never completed, so it is skipped; a malformed line anywhere else fails
+// the load with its line number.
 func Load(path string) (*Session, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -108,6 +114,12 @@ func Load(path string) (*Session, error) {
 	}
 	s := &Session{ID: sessionIDFromPath(path)}
 	haveRecordedID := false
+	lastNonEmpty := 0
+	for i, l := range bytes.Split(data, []byte("\n")) {
+		if len(bytes.TrimSpace(l)) > 0 {
+			lastNonEmpty = i + 1
+		}
+	}
 	sc := bufio.NewScanner(bytes.NewReader(data))
 	// A single long turn (pasted file, large tool output) can exceed the
 	// default 64 KiB scanner limit.
@@ -121,6 +133,9 @@ func Load(path string) (*Session, error) {
 		}
 		var e rawEntry
 		if err := json.Unmarshal(raw, &e); err != nil {
+			if line == lastNonEmpty {
+				continue // torn trailing write: the entry never completed
+			}
 			return nil, fmt.Errorf("%s:%d: malformed JSONL entry: %w", path, line, err)
 		}
 		// Prefer the recorded sessionId over the file-name fallback; the

@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/SuperMarioYL/lastword/internal/transcript"
 )
@@ -29,7 +30,7 @@ var exitCodeRe = regexp.MustCompile(`Exit code (\d+)`)
 //
 // Every claim gets a pointer to the turn that produced it: the final
 // assistant turn, the last edit event per file, and the tool_result turn of
-// each command's last run. Checks are left to verify (milestone m2).
+// each command's last run. Checks are evaluated separately by verify.go.
 func Extract(s *transcript.Session) *Span {
 	span := &Span{
 		Schema:  SchemaVersion,
@@ -59,35 +60,13 @@ func Extract(s *transcript.Session) *Span {
 	}
 
 	// File changes: first-appearance order, summed line counts, pointer to
-	// the last edit event per file.
-	changeAt := make(map[string]int)     // file -> index into Answer.Changes
-	lastEdit := make(map[string]useSite) // file -> latest Edit/Write event
-	for i := range s.Turns {
-		for _, use := range s.Turns[i].ToolUses {
-			file := use.Input.FilePath
-			if file == "" {
-				continue
-			}
-			var added, removed int
-			switch use.Name {
-			case "Edit":
-				added, removed = lineCount(use.Input.NewString), lineCount(use.Input.OldString)
-			case "Write":
-				added, removed = lineCount(use.Input.Content), 0
-			default:
-				continue
-			}
-			idx, seen := changeAt[file]
-			if !seen {
-				span.Answer.Changes = append(span.Answer.Changes, Change{File: file})
-				idx = len(span.Answer.Changes) - 1
-				changeAt[file] = idx
-			}
-			span.Answer.Changes[idx].Added += added
-			span.Answer.Changes[idx].Removed += removed
-			lastEdit[file] = useSite{turn: &s.Turns[i], use: use}
-		}
+	// the last edit event per file. The aggregation is shared with verify so
+	// the answer_diff check compares against the same rules Extract applies.
+	changes, lastEdit := aggregateChanges(s.Turns)
+	if changes == nil {
+		changes = []Change{} // keep the JSON contract: [] rather than null
 	}
+	span.Answer.Changes = changes
 	for _, change := range span.Answer.Changes {
 		site := lastEdit[change.File]
 		span.Pointers = append(span.Pointers, Pointer{
@@ -141,6 +120,44 @@ func Extract(s *transcript.Session) *Span {
 	}
 
 	return span
+}
+
+// aggregateChanges applies the format's change rules to a session's turns:
+// one Change per file touched by Edit/Write tool events, in first-appearance
+// order, with line counts summed across every event for that file. It also
+// returns the last event per file so pointers can anchor the turn that most
+// recently produced the change.
+func aggregateChanges(turns []transcript.Turn) ([]Change, map[string]useSite) {
+	changeAt := make(map[string]int)     // file -> index into changes
+	lastEdit := make(map[string]useSite) // file -> latest Edit/Write event
+	var changes []Change
+	for i := range turns {
+		for _, use := range turns[i].ToolUses {
+			file := use.Input.FilePath
+			if file == "" {
+				continue
+			}
+			var added, removed int
+			switch use.Name {
+			case "Edit":
+				added, removed = lineCount(use.Input.NewString), lineCount(use.Input.OldString)
+			case "Write":
+				added, removed = lineCount(use.Input.Content), 0
+			default:
+				continue
+			}
+			idx, seen := changeAt[file]
+			if !seen {
+				changes = append(changes, Change{File: file})
+				idx = len(changes) - 1
+				changeAt[file] = idx
+			}
+			changes[idx].Added += added
+			changes[idx].Removed += removed
+			lastEdit[file] = useSite{turn: &turns[i], use: use}
+		}
+	}
+	return changes, lastEdit
 }
 
 // useSite is a tool_use block together with the turn that issued it.
@@ -199,7 +216,9 @@ func parseExitCode(content string) *int {
 }
 
 // snippet quotes the first two non-empty lines of a turn's content, hard
-// truncated at snippetWidth characters.
+// truncated at snippetWidth characters. The cap counts runes, not bytes: a
+// byte-indexed cut would split a multi-byte rune and corrupt the "verbatim"
+// quote the format promises.
 func snippet(text string) string {
 	var kept []string
 	for _, l := range strings.Split(text, "\n") {
@@ -212,8 +231,8 @@ func snippet(text string) string {
 		}
 	}
 	s := strings.Join(kept, "\n")
-	if len(s) > snippetWidth {
-		return s[:snippetWidth] + "…"
+	if utf8.RuneCountInString(s) > snippetWidth {
+		return string([]rune(s)[:snippetWidth]) + "…"
 	}
 	return s
 }

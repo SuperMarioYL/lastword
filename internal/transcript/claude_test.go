@@ -3,6 +3,7 @@ package transcript
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -97,13 +98,58 @@ func TestLoadInlineShapes(t *testing.T) {
 	}
 }
 
-func TestLoadMalformedLine(t *testing.T) {
+func TestLoadMalformedMiddleLine(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "bad.jsonl")
-	if err := os.WriteFile(path, []byte("{\"type\":\"user\"}\nnot json at all\n"), 0o644); err != nil {
+	// A malformed line BEFORE the end must fail the load: only a torn final
+	// entry (a write that never completed) is tolerated.
+	if err := os.WriteFile(path, []byte("{\"type\":\"user\"}\nnot json at all\n{\"type\":\"assistant\"}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Load(path); err == nil {
-		t.Fatal("Load succeeded on malformed JSONL, want error")
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("Load succeeded on a malformed middle line, want error")
+	}
+	if !strings.Contains(err.Error(), "2:") {
+		t.Errorf("error = %v, want the offending line number", err)
+	}
+}
+
+func TestLoadTornFinalLine(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "torn.jsonl")
+	// A session still being written: two complete entries, then a final
+	// entry cut mid-JSON. The torn entry never completed, so it is skipped
+	// and the completed turns load.
+	valid1 := `{"type":"user","uuid":"u1","sessionId":"torn","message":{"role":"user","content":"hello"}}`
+	valid2 := `{"type":"assistant","uuid":"a1","sessionId":"torn","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}`
+	if err := os.WriteFile(path, []byte(valid1+"\n"+valid2+"\n"+valid2[:60]), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(s.Turns) != 2 {
+		t.Fatalf("counted turns = %d, want the 2 completed entries", len(s.Turns))
+	}
+	if s.Turns[1].Text != "done" {
+		t.Errorf("turn 2 text = %q, want the completed assistant turn", s.Turns[1].Text)
+	}
+}
+
+func TestLoadBlankFinalLineAfterTorn(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "torn-blank.jsonl")
+	// The torn line is the last NON-EMPTY line even when blank lines follow.
+	if err := os.WriteFile(path, []byte("{\"type\":\"user\",\"uuid\":\"u1\"}\n{\"type\":\"as"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(s.Turns) != 1 {
+		t.Fatalf("counted turns = %d, want 1", len(s.Turns))
 	}
 }

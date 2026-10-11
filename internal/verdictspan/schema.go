@@ -4,7 +4,7 @@
 // A span is emitted by deterministic extraction (extract.go) and is only
 // considered valid once every pointer resolves to a real turn and the
 // answer's diff claims match the transcript's actual edit events — the
-// check semantics verify.go will enforce (milestone m2).
+// check semantics verify.go enforces.
 package verdictspan
 
 // SchemaVersion identifies the emitted format.
@@ -29,9 +29,9 @@ type Span struct {
 	Session  string    `json:"session"`
 	Answer   Answer    `json:"answer"`
 	Pointers []Pointer `json:"pointers"`
-	// Checks is nil when the emitter has not evaluated the span; the
-	// pointer_resolution and answer_diff checks land with `lastword verify`
-	// in milestone m2 and marshal as null until then.
+	// Checks is nil when the emitter has not evaluated the span (extraction
+	// alone never asserts passes); `lastword verify` fills both checks in
+	// place.
 	Checks []Check `json:"checks"`
 }
 

@@ -9,7 +9,7 @@ import (
 
 // version is the dev default; goreleaser injects the release tag at build
 // time (-X main.version=...).
-var version = "0.1.0"
+var version = "0.2.0"
 
 func main() {
 	if err := cli.Execute(version); err != nil {

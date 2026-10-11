@@ -6,9 +6,10 @@ Set Padding 16
 Set Theme Dracula
 Set TypingSpeed 6ms
 
-# LastWord m1 demo — a finished 500-turn Claude Code session, pinned.
-# Reproducible: build from source, stage the bundled sanitized fixture as a
-# demo projects tree, then run latest / verdict on it.
+# LastWord v0.2 demo — a finished 500-turn Claude Code session, pinned and
+# machine-checked. Reproducible: build from source, stage the bundled
+# sanitized fixture as a demo projects tree, then run latest / verdict /
+# verify on it.
 
 Type "go build -o /tmp/lastword ./cmd/lastword"
 Enter
@@ -51,6 +52,13 @@ Type "/tmp/lastword verdict --projects-dir /tmp/lwdemo/projects --format text"
 Enter
 Sleep 3000ms
 
-Type "# deterministic — zero model calls; verify lands in m2, the viewer in m3"
+Type "# deterministic — zero model calls; verify checks the span machine-side"
 Enter
 Sleep 1500ms
+
+Type "# 4. the machine check: pointers resolve, diff claims match the transcript"
+Enter
+Sleep 500ms
+Type "/tmp/lastword verify testdata/sessions/session-500turn.jsonl"
+Enter
+Sleep 2500ms

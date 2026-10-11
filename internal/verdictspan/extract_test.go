@@ -2,7 +2,9 @@ package verdictspan
 
 import (
 	"reflect"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/SuperMarioYL/lastword/internal/transcript"
 )
@@ -255,5 +257,39 @@ func TestExtractMinimalFixture(t *testing.T) {
 	}
 	if len(span.Pointers) != 1 {
 		t.Errorf("pointers = %d, want the final pointer only", len(span.Pointers))
+	}
+}
+
+func TestSnippetTruncatesAtRuneBoundary(t *testing.T) {
+	// A byte-indexed cut used to split multi-byte runes: 118 ASCII bytes
+	// then CJK put the old 120-BYTE cap inside a rune, and encoding/json
+	// coerced the broken tail to U+FFFD — corrupting the "verbatim" quote.
+	// The cap now counts runes, so the quote stays valid UTF-8 and a true
+	// prefix of the source.
+	for name, lead := range map[string]string{
+		"ascii-cjk-boundary": "a" + strings.Repeat("x", 117) + "这个问题的结论是修复了缓存键失效逻辑",
+		"cjk-only":           strings.Repeat("这个问题的根本原因是会话刷新时缓存键失效了，需要修正失效逻辑。", 8),
+	} {
+		t.Run(name, func(t *testing.T) {
+			b := &turnBuilder{}
+			b.add("user", "总结", nil, nil)
+			b.add("assistant", lead, nil, nil)
+			span := Extract(&transcript.Session{ID: "s1", Turns: b.turns})
+
+			snip := span.Pointers[0].Snippet
+			if !utf8.ValidString(snip) {
+				t.Fatalf("snippet is not valid UTF-8: %q", snip)
+			}
+			if !strings.HasSuffix(snip, "…") {
+				t.Fatalf("long snippet = %q, want the truncation marker", snip)
+			}
+			core := strings.TrimSuffix(snip, "…")
+			if got := utf8.RuneCountInString(core); got != snippetWidth {
+				t.Errorf("snippet core = %d runes, want %d", got, snippetWidth)
+			}
+			if !strings.HasPrefix(lead, core) {
+				t.Errorf("snippet core is not a prefix of the lead:\ncore %q\nlead %q", core, lead)
+			}
+		})
 	}
 }

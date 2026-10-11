@@ -4,6 +4,37 @@ All notable changes to LastWord are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-10-12
+
+### Added
+
+- `lastword verify [file]` runs the verdict-span/v0 machine checks —
+  pointer_resolution (every pointer's turn/uuid resolves and its snippet
+  appears verbatim in that turn, with the documented truncation marker
+  matched at a line boundary) and answer_diff (claimed changes equal the
+  transcript's actual Edit/Write aggregation) — prints the per-check report
+  and exits 0/1, usable from scripts and CI. `--format json` emits the span
+  document with `checks` filled; the terminal panel's checks line reflects
+  evaluated checks instead of milestone jargon.
+- `lastword view [file]` writes a self-contained HTML viewer (`--out`,
+  default `lastword.html`): the verdict panel pinned at the top while the
+  full counted-turn transcript scrolls beneath it, every pointer a link
+  that jumps to and highlights its turn via CSS `:target`. Inline CSS only
+  — no CDN, no external fetches, no JavaScript build step — plus `--open`
+  for a best-effort browser launch.
+- The verify and view smoke checks run in CI over the bundled sessions.
+
+### Fixed
+
+- Pointer snippets no longer corrupt non-ASCII content. The 120-unit
+  truncation cap counted bytes, so a cut inside a multi-byte rune emitted
+  invalid UTF-8 that `encoding/json` coerced to U+FFFD; the cap now counts
+  runes and the quote stays verbatim.
+- A torn final JSONL line no longer aborts the whole session. Discovery
+  prefers the newest file — usually the session still being written — and
+  a trailing entry cut mid-write is skipped; a malformed line anywhere
+  before the end still fails the load with its line number.
+
 ## [0.1.0] — 2026-09-09
 
 ### Added

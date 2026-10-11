@@ -57,3 +57,19 @@ jobs:
             = "/tmp/ci/projects/-tmp-ci-app/session-minimal.jsonl"
           /tmp/lastword verdict --projects-dir /tmp/ci/projects \
             | grep -F '"session": "c2a9d1ef-33b7-4f0a-8d5e-91c7b6a2f801"'
+
+      - name: Smoke — verify checks the span
+        run: |
+          set -euo pipefail
+          /tmp/lastword verify testdata/sessions/session-500turn.jsonl \
+            | grep -F "verdict: PASS"
+          /tmp/lastword verify --format json testdata/sessions/session-500turn.jsonl \
+            | grep -F '"pass": true'
+
+      - name: Smoke — view renders the pinned viewer
+        run: |
+          set -euo pipefail
+          /tmp/lastword view testdata/sessions/session-500turn.jsonl --out /tmp/lw-viewer.html
+          grep -F 'id="turn-500"' /tmp/lw-viewer.html
+          grep -F 'href="#turn-8"' /tmp/lw-viewer.html
+          ! grep -qi 'src="http' /tmp/lw-viewer.html

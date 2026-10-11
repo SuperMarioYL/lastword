@@ -11,7 +11,7 @@
 Multi-hour Claude Code sessions bury the operative answer in hundreds of turns of narration. LastWord reads the finished transcript and pins the verdict — the final decision, what changed, and machine-checkable pointers to the exact turns that produced it — so a 500-turn run ends with one visible answer instead of another scroll.
 
 [![CI](https://github.com/SuperMarioYL/lastword/actions/workflows/ci.yml/badge.svg)](https://github.com/SuperMarioYL/lastword/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.1.0-318347)](https://github.com/SuperMarioYL/lastword/releases)
+[![Version](https://img.shields.io/badge/version-0.2.0-318347)](https://github.com/SuperMarioYL/lastword/releases)
 [![Go](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-318347)](./LICENSE)
 ![Local](https://img.shields.io/badge/local_only-no_telemetry-318347)
@@ -41,6 +41,8 @@ Try it on the bundled 500-turn session (a sanitized synthetic fixture shaped lik
 
 ```bash
 /tmp/lastword verdict testdata/sessions/session-500turn.jsonl --format text
+/tmp/lastword verify  testdata/sessions/session-500turn.jsonl   # machine-check it
+/tmp/lastword view    testdata/sessions/session-500turn.jsonl   # pinned HTML viewer
 ```
 
 Then run it on your own machine, where Claude Code already wrote the session for you:
@@ -50,13 +52,13 @@ Then run it on your own machine, where Claude Code already wrote the session for
 /tmp/lastword verdict   # its verdict span, discovered automatically
 ```
 
-That is the whole v0.1 loop: one command in, one verdict out. The three lines above also live in [examples/quickstart.sh](examples/quickstart.sh).
+That is the whole loop: one command in, one verdict out — checked with `verify`, pinned with `view`. These lines also live in [examples/quickstart.sh](examples/quickstart.sh).
 
 ## <img src="assets/icons/video.svg" width="22" alt=""> Recorded demo
 
-The commands and outputs below are copied verbatim from a real `0.1.0` run — full record in [docs/demo-results.json](docs/demo-results.json). The session under test is the bundled sanitized fixture (`testdata/sessions/session-500turn.jsonl`, 500 counted turns), staged as a demo projects tree; on your own machine the same commands read your newest session under `~/.claude/projects` through the identical code path.
+The commands and outputs below are copied verbatim from a real `0.2.0` run — full record in [docs/demo-results.json](docs/demo-results.json). The session under test is the bundled sanitized fixture (`testdata/sessions/session-500turn.jsonl`, 500 counted turns), staged as a demo projects tree; on your own machine the same commands read your newest session under `~/.claude/projects` through the identical code path.
 
-![Before: 503 lines of raw session JSONL. After: lastword verdict pins the answer, changes and command outcomes with pointers to the turns that produced them — the click-to-jump viewer lands with milestone m3.](docs/demo-500turn.gif)
+![Before: 503 lines of raw session JSONL. After: lastword verdict pins the answer, changes and command outcomes with pointers to the turns that produced them — and lastword view pins the same verdict over the full transcript with click-to-jump provenance.](docs/demo-500turn.gif)
 
 The verdict panel, as printed by `lastword verdict --format text`:
 
@@ -102,7 +104,19 @@ POINTERS (14)
   #47   result  answer.results[git log --oneline -3 -- web/]
   #48   result  answer.results[go test ./... -run Auth]
 
-checks: not evaluated (verify arrives with milestone m2)
+checks: not evaluated — run: lastword verify
+```
+
+The machine check over the same span, as printed by `lastword verify` (exit 0, scriptable):
+
+```text
+LastWord — verify verdict-span/v0
+session 7f3d2c8a-1e94-4b67-9c02-5a8d3f6b1e47
+
+  [pass] pointer_resolution — 14/14 pointers resolve
+  [pass] answer_diff — 7 files claimed, 7 edited, 0 unclaimed
+
+verdict: PASS
 ```
 
 Note what the span gets right that the raw transcript hides: `go test ./...` failed early in the session and passed after the fix — the span claims the **last** outcome, the passing run at turn 16. The `npm` build failure is claimed as failed with its printed exit code. The same verdict as the open JSON document (head shown; the full document is in the record):
@@ -153,7 +167,7 @@ The ecosystem's current fixes live one layer short of the problem:
 LastWord replaces the request with a derived contract. Extraction is deterministic — it never calls a model — and two elements make the result a primitive rather than another summary:
 
 - **The pointer**: every claim in the answer carries a resolvable, snippet-anchored reference to the specific turn that produced it. `answer.changes[src/auth/token.go]` is not a vibe, it is turn 8, with a verbatim quote.
-- **The check semantics**: the spec defines what makes a span valid — every pointer must resolve to a real turn, and the claimed diff must equal the transcript's actual edit events. `lastword verify` (milestone m2) enforces exactly that, with a pass/fail exit code.
+- **The check semantics**: the spec defines what makes a span valid — every pointer must resolve to a real turn, and the claimed diff must equal the transcript's actual edit events. `lastword verify` enforces exactly that, with a pass/fail exit code.
 
 ## <img src="assets/icons/schema.svg" width="22" alt=""> How it works
 
@@ -165,7 +179,9 @@ One Go binary, one process, no daemon, no server, no network calls.
       |
       v
  transcript/claude.go    JSONL -> turns {uuid, role, text, toolUses, toolResults}
-                        (sidechain entries and bookkeeping types skipped)
+                        (sidechain entries and bookkeeping types skipped;
+                         a torn trailing write is skipped, mid-file
+                         corruption still fails the load)
  transcript/discover.go  newest main-session lookup
       |
       v
@@ -174,11 +190,13 @@ One Go binary, one process, no daemon, no server, no network calls.
         changes     = aggregated Edit/Write tool events
         results     = last outcome per command: ok mirrors is_error,
                       exit code parsed from "Exit code N" text when present
+ verdictspan/verify.go   pointer_resolution + answer_diff -> checks[]
  verdictspan/schema.go  verdict-span/v0 types + open-format reference
       |
-      v
- render/terminal.go     `lastword verdict`  stdout — canonical JSON, or a
-                        readable panel with --format text
+      +---> render/terminal.go   `lastword verdict`  stdout — canonical JSON, or a
+      |                          readable panel with --format text; `lastword
+      |                          verify` prints the check report with exit 0/1
+      +---> render/viewer.go     `lastword view`     single-file HTML (embedded template)
 ```
 
 <picture>
@@ -199,7 +217,7 @@ The extraction pipeline behind every span:
 
 ## <img src="assets/icons/file-text.svg" width="22" alt=""> The verdict-span format
 
-The span is a published open format — [docs/verdict-span-v0.md](docs/verdict-span-v0.md) — so other tools can emit and consume it. It is agent-generic by design; v0.1 of this CLI reads Claude Code session JSONL only.
+The span is a published open format — [docs/verdict-span-v0.md](docs/verdict-span-v0.md) — so other tools can emit and consume it. It is agent-generic by design; this CLI reads Claude Code session JSONL only.
 
 ```json
 {
@@ -229,12 +247,16 @@ Result entries are derived, not read: Claude Code tool_result blocks carry no st
 | Command | What it does |
 | --- | --- |
 | `lastword verdict [file]` | Extract and print the verdict span; with no file, the newest main session is discovered |
+| `lastword verify [file]` | Run the pointer-resolution and answer-diff checks over the span; exit 0/1 |
+| `lastword view [file]` | Write the single-file HTML viewer (pinned verdict, click-to-jump provenance) |
 | `lastword latest` | Print the path of the newest main-session transcript |
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--format` | `json` | `json` — the canonical verdict-span/v0 document; `text` — a readable panel |
-| `--projects-dir` | `~/.claude/projects` | Claude Code projects root, used by discovery |
+| Option | Applies to | Default | Description |
+| --- | --- | --- | --- |
+| `--format` | `verdict`, `verify` | `json` / `text` | `json` — the canonical verdict-span/v0 document (`verify` fills `checks`); `text` — a readable panel / the check report |
+| `--projects-dir` | all discovery | `~/.claude/projects` | Claude Code projects root, used when no file is given |
+| `--out` | `view` | `lastword.html` | Path of the written HTML viewer |
+| `--open` | `view` | off | Open the viewer in a browser after writing it (best-effort) |
 
 Main sessions are the `*.jsonl` files directly inside a project directory; anything nested deeper (subagent transcripts) is excluded. When discovery runs, the resolved path is printed to stderr so stdout stays machine-readable.
 
@@ -253,24 +275,25 @@ Main sessions are the `*.jsonl` files directly inside a project directory; anyth
 | Change claims | `Edit` and `Write` tool events, aggregated per file with +/− line counts |
 | Result claims | `Bash` use/result pairs matched by `tool_use_id`; last outcome per distinct command |
 | Pointers | Turn number + message uuid + verbatim snippet for the lead, every file, every command |
+| Checks | `pointer_resolution` and `answer_diff` via `lastword verify`, with a pass/fail exit code |
+| Viewer | Single-file HTML (`lastword view`): verdict pinned, click-to-jump provenance, no CDN |
 | Output | `verdict-span/v0` JSON (default) and a terminal panel (`--format text`) |
 | Fixtures | Sanitized synthetic sessions in `testdata/sessions/`, including a 500-turn run |
 
 ## <img src="assets/icons/settings.svg" width="22" alt=""> Configuration and limits
 
-- **v0.1 reads finished Claude Code sessions only.** No Codex or Antigravity transcripts, no live-run hooks during a session, no cross-session search or indexing.
-- **Checks are defined but not yet evaluated.** The spec's pointer-resolution and answer-diff semantics ship in `docs/verdict-span-v0.md`; `lastword verify` with a pass/fail exit code is milestone m2, so v0.1 emits `"checks": null`.
-- **No viewer yet.** The pinned HTML panel with click-to-jump provenance is milestone m3; v0.1 prints JSON and a terminal panel.
+- **v0.2 reads finished Claude Code sessions only.** No Codex or Antigravity transcripts, no live-run hooks during a session, no cross-session search or indexing.
+- **Checks are evaluated by `lastword verify`.** Extraction alone emits `"checks": null` — an unevaluated span never asserts passes; `verify` fills `pointer_resolution` and `answer_diff` and exits 0/1. A snippet cut at the 120-character cap carries an ellipsis, and verify matches it at a line boundary of the turn.
+- **The viewer is one HTML file.** `lastword view` embeds everything — inline CSS, no CDN, no external fetches, no JavaScript build step — and opens with the verdict pinned over the full transcript.
 - **Deterministic by design.** No LLM-generated summaries, no interpretation — a span claims only what the transcript objectively contains. A `Write` event counts added lines and claims nothing removed (the previous content is not in the transcript).
 - **No config file, no telemetry, no model calls.** CLI flags only; everything runs locally.
 
 ## <img src="assets/icons/route.svg" width="22" alt=""> Roadmap
 
-- [x] **v0.1 (current, m1)** — turn parsing, newest-session discovery, deterministic verdict-span extraction (lead, changes, results, pointers), JSON + terminal output, open-format spec, 500-turn fixture
-- [ ] **m2** — `lastword verify`: pointer-resolution and answer-diff machine checks with a pass/fail exit code, measured across ten real sessions
-- [ ] **m3** — `lastword view`: a self-contained HTML viewer with the verdict pinned and click-to-jump provenance, plus the before/after demo recording
+- [x] **v0.1 (m1)** — turn parsing, newest-session discovery, deterministic verdict-span extraction (lead, changes, results, pointers), JSON + terminal output, open-format spec, 500-turn fixture
+- [x] **v0.2 (m2 + m3)** — `lastword verify`: pointer-resolution and answer-diff machine checks with a pass/fail exit code; `lastword view`: the self-contained HTML viewer with the verdict pinned and click-to-jump provenance — plus two extraction fixes (rune-safe snippet truncation, torn-final-line tolerance)
 
-Not in v0.1 and not rushed: live-run enforcement, Codex/Antigravity transcript support, LLM-generated summaries, an MCP server exposing spans, IDE extensions, telemetry. The format and the CLI ship first; the substrate (open JSONL transcripts) already exists.
+Not in yet and not rushed: live-run enforcement, Codex/Antigravity transcript support, LLM-generated summaries, an MCP server exposing spans, IDE extensions, telemetry. The format and the CLI ship first; the substrate (open JSONL transcripts) already exists.
 
 ## <img src="assets/icons/license.svg" width="22" alt=""> Development and license
 

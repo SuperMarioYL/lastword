@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LastWord — {{.Session}}</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 13px;
+  }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .ok { color: #3fb950; }
+  .fail { color: #f85149; }
+  .muted { color: #8b949e; }
+  .verdict {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #161b22;
+    border-bottom: 2px solid #318347;
+    padding: 12px 18px;
+    max-height: 46vh;
+    overflow-y: auto;
+    box-shadow: 0 2px 12px rgba(0,0,0,.5);
+  }
+  .verdict h1 { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: #3fb950; }
+  .verdict h2 {
+    font-size: 11px; font-weight: 600; margin: 10px 0 4px;
+    color: #8b949e; text-transform: uppercase; letter-spacing: .08em;
+  }
+  .verdict p.lead { margin: 0; white-space: pre-wrap; word-break: break-word; }
+  .verdict .row { white-space: pre-wrap; padding: 1px 0; }
+  .transcript { padding: 14px 18px 60px; }
+  .turn { border-left: 2px solid #21262d; margin: 0 0 10px; padding: 6px 12px; }
+  .turn.user { border-left-color: #1f6feb; }
+  .turn.assistant { border-left-color: #238636; }
+  .turn .meta { font-size: 11px; color: #8b949e; }
+  .turn pre {
+    margin: 4px 0 0; padding: 0;
+    white-space: pre-wrap; word-break: break-word;
+    font: inherit;
+  }
+  .turn:target { background: #21262d; outline: 2px solid #d29922; }
+</style>
+</head>
+<body>
+
+<header class="verdict">
+  <h1>LastWord — {{.Schema}} · session {{.Session}}</h1>
+
+  <h2>Answer</h2>
+  <p class="lead">{{if .Lead}}{{.Lead}}{{if .LeadTurn}} <a href="#turn-{{.LeadTurn}}" title="jump to turn {{.LeadTurn}}">#{{.LeadTurn}}</a>{{end}}{{else}}<span class="muted">(no assistant text in this session)</span>{{end}}</p>
+
+  <h2>Changes</h2>
+  {{range .Changes}}<div class="row">{{.File}}  <span class="ok">+{{.Added}}</span> <span class="fail">−{{.Removed}}</span>  <a href="#turn-{{.Turn}}">#{{.Turn}}</a></div>
+  {{else}}<div class="row muted">(no Edit/Write tool events)</div>{{end}}
+
+  <h2>Results</h2>
+  {{range .Results}}<div class="row"><span class="{{.Class}}">[{{.Status}}]</span> {{.Cmd}}  <a href="#turn-{{.Turn}}">#{{.Turn}}</a></div>
+  {{else}}<div class="row muted">(no Bash commands ran)</div>{{end}}
+
+  <h2>Pointers</h2>
+  {{range .Pointers}}<div class="row"><a href="#turn-{{.Turn}}">#{{.Turn}}</a>  {{.Kind}}  <span class="muted">{{.Provenance}}</span></div>
+  {{else}}<div class="row muted">(no claims to anchor)</div>{{end}}
+</header>
+
+<main class="transcript">
+  {{range .Turns}}<article class="turn {{.Kind}}" id="turn-{{.Index}}"><div class="meta">#{{.Index}} · {{.Kind}}</div><pre>{{.Body}}</pre></article>
+  {{else}}<p class="muted">(no counted turns)</p>{{end}}
+</main>
+
+</body>
+</html>
