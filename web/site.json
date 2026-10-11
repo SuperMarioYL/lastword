@@ -11,8 +11,8 @@
   "meta": {
     "visual_profile": "neon-particle",
     "demo_source": "docs/demo-results.json",
-    "content_version": "v0.1.0",
-    "implementation_version": "0.1.0"
+    "content_version": "v0.2.0",
+    "implementation_version": "0.2.0"
   },
   "hero": {
     "eyebrow": {
@@ -189,8 +189,8 @@
       "zh": "真实运行记录"
     },
     "note": {
-      "en": "Commands and outputs below are copied verbatim from a real 0.1.0 run on the bundled sanitized 500-turn fixture (testdata/sessions/session-500turn.jsonl) staged as a demo projects tree — no real session data. On your own machine, lastword verdict with no arguments reads your newest session under ~/.claude/projects through the same code path.",
-      "zh": "以下命令与输出逐字复制自 0.1.0 在内置脱敏 500 轮示例（testdata/sessions/session-500turn.jsonl）上的真实运行，示例被布置成一个演示 projects 目录——不含任何真实会话数据。在你自己的机器上，不带参数的 lastword verdict 会以同一代码路径读取 ~/.claude/projects 里你最新的会话。"
+      "en": "Commands and outputs below are copied verbatim from a real 0.2.0 run on the bundled sanitized 500-turn fixture (testdata/sessions/session-500turn.jsonl) staged as a demo projects tree — no real session data. On your own machine, lastword verdict with no arguments reads your newest session under ~/.claude/projects through the same code path.",
+      "zh": "以下命令与输出逐字复制自 0.2.0 在内置脱敏 500 轮示例（testdata/sessions/session-500turn.jsonl）上的真实运行，示例被布置成一个演示 projects 目录——不含任何真实会话数据。在你自己的机器上，不带参数的 lastword verdict 会以同一代码路径读取 ~/.claude/projects 里你最新的会话。"
     },
     "source": "https://github.com/SuperMarioYL/lastword/blob/main/docs/demo-results.json",
     "steps": [
