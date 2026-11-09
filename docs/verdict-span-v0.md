@@ -7,8 +7,8 @@ in a form a machine can check: the final answer, the files changed, the last
 command outcomes, and a pointer from every claim to the exact transcript turn
 that produced it.
 
-This document is the open format reference. LastWord v0.1 emits spans for
-finished Claude Code session transcripts; any tool may emit or consume them.
+This document is the open format reference. LastWord emits spans for finished
+Claude Code session transcripts; any tool may emit or consume them.
 The format is agent-generic by design — the transcript side only requires
 turns, tool events and results.
 
@@ -89,7 +89,7 @@ Every claim in the answer carries a pointer to the turn that produced it:
 | `turn` | 1-based index of the turn among **counted turns** (see below) |
 | `uuid` | the transcript message uuid of that turn |
 | `kind` | `final`, `edit`, or `result` |
-| `snippet` | verbatim quote of up to two non-empty lines from that turn, hard truncated at 120 characters |
+| `snippet` | verbatim quote of up to two consecutive non-empty lines from that turn, hard truncated at 120 characters (a cut quote carries a trailing ellipsis) |
 | `provenance` | the claim it backs, as the answer's JSON path: `answer.lead`, `answer.changes[<file>]`, `answer.results[<cmd>]` |
 
 Rules:
@@ -115,8 +115,8 @@ A span is only valid if every claim holds against the transcript:
   claimed, and the added/removed counts match.
 
 The semantics live in the format so any tool can enforce them. LastWord
-evaluates them with `lastword verify` (milestone m2); an emitter that has
-not evaluated its span sets `checks` to `null` rather than asserting passes.
+evaluates them with `lastword verify`; an emitter that has not evaluated its
+span sets `checks` to `null` rather than asserting passes.
 
 ## Turn semantics
 

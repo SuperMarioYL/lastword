@@ -11,7 +11,7 @@
 Multi-hour Claude Code sessions bury the operative answer in hundreds of turns of narration. LastWord reads the finished transcript and pins the verdict — the final decision, what changed, and machine-checkable pointers to the exact turns that produced it — so a 500-turn run ends with one visible answer instead of another scroll.
 
 [![CI](https://github.com/SuperMarioYL/lastword/actions/workflows/ci.yml/badge.svg)](https://github.com/SuperMarioYL/lastword/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.2.0-318347)](https://github.com/SuperMarioYL/lastword/releases)
+[![Version](https://img.shields.io/badge/version-0.3.0-318347)](https://github.com/SuperMarioYL/lastword/releases)
 [![Go](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-318347)](./LICENSE)
 ![Local](https://img.shields.io/badge/local_only-no_telemetry-318347)
@@ -56,7 +56,7 @@ That is the whole loop: one command in, one verdict out — checked with `verify
 
 ## <img src="assets/icons/video.svg" width="22" alt=""> Recorded demo
 
-The commands and outputs below are copied verbatim from a real `0.2.0` run — full record in [docs/demo-results.json](docs/demo-results.json). The session under test is the bundled sanitized fixture (`testdata/sessions/session-500turn.jsonl`, 500 counted turns), staged as a demo projects tree; on your own machine the same commands read your newest session under `~/.claude/projects` through the identical code path.
+The commands and outputs below are copied verbatim from a real `0.3.0` run — full record in [docs/demo-results.json](docs/demo-results.json). The session under test is the bundled sanitized fixture (`testdata/sessions/session-500turn.jsonl`, 500 counted turns), staged as a demo projects tree; on your own machine the same commands read your newest session under `~/.claude/projects` through the identical code path.
 
 ![Before: 503 lines of raw session JSONL. After: lastword verdict pins the answer, changes and command outcomes with pointers to the turns that produced them — and lastword view pins the same verdict over the full transcript with click-to-jump provenance.](docs/demo-500turn.gif)
 
@@ -282,7 +282,7 @@ Main sessions are the `*.jsonl` files directly inside a project directory; anyth
 
 ## <img src="assets/icons/settings.svg" width="22" alt=""> Configuration and limits
 
-- **v0.2 reads finished Claude Code sessions only.** No Codex or Antigravity transcripts, no live-run hooks during a session, no cross-session search or indexing.
+- **v0.3 reads finished Claude Code sessions only.** No Codex or Antigravity transcripts, no live-run hooks during a session, no cross-session search or indexing.
 - **Checks are evaluated by `lastword verify`.** Extraction alone emits `"checks": null` — an unevaluated span never asserts passes; `verify` fills `pointer_resolution` and `answer_diff` and exits 0/1. A snippet cut at the 120-character cap carries an ellipsis, and verify matches it at a line boundary of the turn.
 - **The viewer is one HTML file.** `lastword view` embeds everything — inline CSS, no CDN, no external fetches, no JavaScript build step — and opens with the verdict pinned over the full transcript.
 - **Deterministic by design.** No LLM-generated summaries, no interpretation — a span claims only what the transcript objectively contains. A `Write` event counts added lines and claims nothing removed (the previous content is not in the transcript).
@@ -292,6 +292,7 @@ Main sessions are the `*.jsonl` files directly inside a project directory; anyth
 
 - [x] **v0.1 (m1)** — turn parsing, newest-session discovery, deterministic verdict-span extraction (lead, changes, results, pointers), JSON + terminal output, open-format spec, 500-turn fixture
 - [x] **v0.2 (m2 + m3)** — `lastword verify`: pointer-resolution and answer-diff machine checks with a pass/fail exit code; `lastword view`: the self-contained HTML viewer with the verdict pinned and click-to-jump provenance — plus two extraction fixes (rune-safe snippet truncation, torn-final-line tolerance)
+- [x] **v0.3** — correctness: every pointer snippet is now a contiguous verbatim quote, so a span straight out of `verdict` passes `verify` even when a turn narrates in several paragraphs (the bundled edge-case fixture used to fail its own check); a parsed exit code is claimed only for failed commands, so a passing command can no longer report `ok: true` with `exit_code: 1`
 
 Not in yet and not rushed: live-run enforcement, Codex/Antigravity transcript support, LLM-generated summaries, an MCP server exposing spans, IDE extensions, telemetry. The format and the CLI ship first; the substrate (open JSONL transcripts) already exists.
 

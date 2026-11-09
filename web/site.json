@@ -11,8 +11,8 @@
   "meta": {
     "visual_profile": "neon-particle",
     "demo_source": "docs/demo-results.json",
-    "content_version": "v0.2.0",
-    "implementation_version": "0.2.0"
+    "content_version": "v0.3.0",
+    "implementation_version": "0.3.0"
   },
   "hero": {
     "eyebrow": {
@@ -141,8 +141,8 @@
           "zh": "今天能接什么"
         },
         "body": {
-          "en": "v0.1 reads finished Claude Code session JSONL — the format Claude Code already writes to ~/.claude/projects. Codex and Antigravity transcripts, live-run hooks during a session, and an MCP server exposing spans are roadmap, not shipped. The machine checks (lastword verify) and the pinned HTML viewer with click-to-jump provenance (lastword view) are milestones m2 and m3.",
-          "zh": "v0.1 读取跑完的 Claude Code 会话 JSONL——就是 Claude Code 已经写进 ~/.claude/projects 的那份格式。Codex 与 Antigravity 会话、会话中的实时钩子、暴露 span 的 MCP 服务都在路线图上，尚未交付。机器校验（lastword verify）与带点击跳转溯源的钉住式 HTML 查看器（lastword view）分别是里程碑 m2 与 m3。"
+          "en": "v0.3 reads finished Claude Code session JSONL — the format Claude Code already writes to ~/.claude/projects — and ships the full contract: lastword verify runs the pointer-resolution and answer-diff checks with a pass/fail exit code, and lastword view renders the pinned single-file HTML viewer with click-to-jump provenance. Codex and Antigravity transcripts, live-run hooks during a session, and an MCP server exposing spans are roadmap, not shipped.",
+          "zh": "v0.3 读取跑完的 Claude Code 会话 JSONL——就是 Claude Code 已经写进 ~/.claude/projects 的那份格式——并且把契约交付完整：lastword verify 以通过/失败退出码运行指针解析与答案 diff 校验，lastword view 渲染结论钉住、点击跳转溯源的单文件 HTML 查看器。Codex 与 Antigravity 会话、会话中的实时钩子、暴露 span 的 MCP 服务都在路线图上，尚未交付。"
         },
         "image": {
           "light": "/assets/presentation/integrations-light.svg",
@@ -176,8 +176,8 @@
           "zh": "配置与边界"
         },
         "body": {
-          "en": "No config file, no API keys, no telemetry — CLI flags only. Write events count added lines but claim nothing removed (the previous content is not in the transcript). Commands are compared after trimming whitespace, and only the last outcome of each command is claimed. The spec's pointer-resolution and answer-diff checks are defined but not yet evaluated by the CLI — that is milestone m2.",
-          "zh": "没有配置文件、没有 API key、没有遥测——只有命令行参数。Write 事件只计新增行、不主张删除行（旧内容不在会话记录里）。命令比较前会去除首尾空白，且只主张每条命令的最后一次结果。规范中的指针解析与答案 diff 校验已定义但 CLI 尚未执行——那是里程碑 m2。"
+          "en": "No config file, no API keys, no telemetry — CLI flags only. Write events count added lines but claim nothing removed (the previous content is not in the transcript). Commands are compared after trimming whitespace, and only the last outcome of each command is claimed. The spec's pointer-resolution and answer-diff checks are evaluated by lastword verify, which exits 0/1; extraction alone emits \"checks\": null — an unevaluated span never asserts passes. A snippet cut at the 120-character cap carries an ellipsis, and verify matches it at a line boundary of the turn.",
+          "zh": "没有配置文件、没有 API key、没有遥测——只有命令行参数。Write 事件只计新增行、不主张删除行（旧内容不在会话记录里）。命令比较前会去除首尾空白，且只主张每条命令的最后一次结果。规范中的指针解析与答案 diff 校验由 lastword verify 执行，并以 0/1 退出；单纯抽取输出 \"checks\": null——未经评估的 span 从不主张通过。被截到 120 字符上限的引用带省略号，verify 会在该轮内容的行边界上匹配它。"
         },
         "code": "go test ./...\npython3 docs/render_presentation.py --repo ."
       }
@@ -189,8 +189,8 @@
       "zh": "真实运行记录"
     },
     "note": {
-      "en": "Commands and outputs below are copied verbatim from a real 0.2.0 run on the bundled sanitized 500-turn fixture (testdata/sessions/session-500turn.jsonl) staged as a demo projects tree — no real session data. On your own machine, lastword verdict with no arguments reads your newest session under ~/.claude/projects through the same code path.",
-      "zh": "以下命令与输出逐字复制自 0.2.0 在内置脱敏 500 轮示例（testdata/sessions/session-500turn.jsonl）上的真实运行，示例被布置成一个演示 projects 目录——不含任何真实会话数据。在你自己的机器上，不带参数的 lastword verdict 会以同一代码路径读取 ~/.claude/projects 里你最新的会话。"
+      "en": "Commands and outputs below are copied verbatim from a real 0.3.0 run on the bundled sanitized 500-turn fixture (testdata/sessions/session-500turn.jsonl) staged as a demo projects tree — no real session data. On your own machine, lastword verdict with no arguments reads your newest session under ~/.claude/projects through the same code path.",
+      "zh": "以下命令与输出逐字复制自 0.3.0 在内置脱敏 500 轮示例（testdata/sessions/session-500turn.jsonl）上的真实运行，示例被布置成一个演示 projects 目录——不含任何真实会话数据。在你自己的机器上，不带参数的 lastword verdict 会以同一代码路径读取 ~/.claude/projects 里你最新的会话。"
     },
     "source": "https://github.com/SuperMarioYL/lastword/blob/main/docs/demo-results.json",
     "steps": [
@@ -205,7 +205,7 @@
         },
         "image": "/assets/presentation/demo-0-light.svg",
         "imageDark": "/assets/presentation/demo-0-dark.svg",
-        "command": "go build -o /tmp/lastword ./cmd/lastword && rm -rf /tmp/lwdemo && mkdir -p /tmp/lwdemo/projects/-Users-dev-work-api-server && cp testdata/sessions/session-500turn.jsonl /tmp/lwdemo/projects/-Users-dev-work-api-server/ && /tmp/lastword latest --projects-dir /tmp/lwdemo/projects",
+        "command": "go build -o /tmp/lastword ./cmd/lastword && mkdir -p /tmp/lwdemo/projects/-Users-dev-work-api-server && cp testdata/sessions/session-500turn.jsonl /tmp/lwdemo/projects/-Users-dev-work-api-server/ && /tmp/lastword latest --projects-dir /tmp/lwdemo/projects",
         "output": "/tmp/lwdemo/projects/-Users-dev-work-api-server/session-500turn.jsonl\n"
       },
       {
@@ -220,7 +220,7 @@
         "image": "/assets/presentation/demo-1-light.svg",
         "imageDark": "/assets/presentation/demo-1-dark.svg",
         "command": "/tmp/lastword verdict --projects-dir /tmp/lwdemo/projects --format text",
-        "output": "discovered session: /tmp/lwdemo/projects/-Users-dev-work-api-server/session-500turn.jsonl\nLastWord — verdict-span/v0\nsession 7f3d2c8a-1e94-4b67-9c02-5a8d3f6b1e47\n\nANSWER\n  The login flake was a stale refresh-token cache key: rotating a session\n  changed the in-memory key but never invalidated the old entry, so roughly\n  one in five refreshes read a token the issuer had already rejected.\n\nCHANGES (7)\n  src/auth/token.go               +6   -6\n  src/auth/session.go             +5   -3\n  internal/api/middleware.go      +8   -5\n  tests/refresh_rotation_test.go  +13  -0\n  internal/api/server.go          +1   -1\n  docs/auth.md                    +5   -0\n  README.md                       +5   -0\n\nRESULTS (6)\n  [ok] go test ./...\n  [ok] gofmt -w .\n  [ok] go vet ./...\n  [FAIL (exit 2)] npm --prefix web run build\n  [ok] git log --oneline -3 -- web/\n  [ok] go test ./... -run Auth\n\nPOINTERS (14)\n  #500  final   answer.lead\n  #8    edit    answer.changes[src/auth/token.go]\n  #8    edit    answer.changes[src/auth/session.go]\n  #11   edit    answer.changes[internal/api/middleware.go]\n  #13   edit    answer.changes[tests/refresh_rotation_test.go]\n  #37   edit    answer.changes[internal/api/server.go]\n  #40   edit    answer.changes[docs/auth.md]\n  #40   edit    answer.changes[README.md]\n  #16   result  answer.results[go test ./...]\n  #39   result  answer.results[gofmt -w .]\n  #44   result  answer.results[go vet ./...]\n  #45   result  answer.results[npm --prefix web run build]\n  #47   result  answer.results[git log --oneline -3 -- web/]\n  #48   result  answer.results[go test ./... -run Auth]\n\nchecks: not evaluated (verify arrives with milestone m2)\n"
+        "output": "discovered session: /tmp/lwdemo/projects/-Users-dev-work-api-server/session-500turn.jsonl\nLastWord — verdict-span/v0\nsession 7f3d2c8a-1e94-4b67-9c02-5a8d3f6b1e47\n\nANSWER\n  The login flake was a stale refresh-token cache key: rotating a session\n  changed the in-memory key but never invalidated the old entry, so roughly\n  one in five refreshes read a token the issuer had already rejected.\n\nCHANGES (7)\n  src/auth/token.go               +6   -6\n  src/auth/session.go             +5   -3\n  internal/api/middleware.go      +8   -5\n  tests/refresh_rotation_test.go  +13  -0\n  internal/api/server.go          +1   -1\n  docs/auth.md                    +5   -0\n  README.md                       +5   -0\n\nRESULTS (6)\n  [ok] go test ./...\n  [ok] gofmt -w .\n  [ok] go vet ./...\n  [FAIL (exit 2)] npm --prefix web run build\n  [ok] git log --oneline -3 -- web/\n  [ok] go test ./... -run Auth\n\nPOINTERS (14)\n  #500  final   answer.lead\n  #8    edit    answer.changes[src/auth/token.go]\n  #8    edit    answer.changes[src/auth/session.go]\n  #11   edit    answer.changes[internal/api/middleware.go]\n  #13   edit    answer.changes[tests/refresh_rotation_test.go]\n  #37   edit    answer.changes[internal/api/server.go]\n  #40   edit    answer.changes[docs/auth.md]\n  #40   edit    answer.changes[README.md]\n  #16   result  answer.results[go test ./...]\n  #39   result  answer.results[gofmt -w .]\n  #44   result  answer.results[go vet ./...]\n  #45   result  answer.results[npm --prefix web run build]\n  #47   result  answer.results[git log --oneline -3 -- web/]\n  #48   result  answer.results[go test ./... -run Auth]\n\nchecks: not evaluated — run: lastword verify\n"
       },
       {
         "label": {
@@ -273,16 +273,16 @@
   },
   "limitations": [
     {
-      "en": "v0.1 reads finished Claude Code session JSONL only — no Codex or Antigravity transcripts, no live-run hooks during a session.",
-      "zh": "v0.1 只读取跑完的 Claude Code 会话 JSONL——不支持 Codex 与 Antigravity 会话，也不做会话中的实时钩子。"
+      "en": "v0.3 reads finished Claude Code session JSONL only — no Codex or Antigravity transcripts, no live-run hooks during a session.",
+      "zh": "v0.3 只读取跑完的 Claude Code 会话 JSONL——不支持 Codex 与 Antigravity 会话，也不做会话中的实时钩子。"
     },
     {
-      "en": "The spec's pointer-resolution and answer-diff checks are defined but not yet evaluated; lastword verify (milestone m2) runs them with a pass/fail exit code.",
-      "zh": "规范中的指针解析与答案 diff 校验已定义但尚未执行；lastword verify（里程碑 m2）会以通过/失败退出码运行它们。"
+      "en": "The spec's pointer-resolution and answer-diff checks are evaluated by lastword verify, which exits 0/1 and is usable from scripts and CI.",
+      "zh": "规范中的指针解析与答案 diff 校验由 lastword verify 执行，以 0/1 退出，可直接用于脚本与 CI。"
     },
     {
-      "en": "No HTML viewer yet — the pinned panel with click-to-jump provenance is milestone m3; v0.1 prints JSON and a terminal panel.",
-      "zh": "尚无 HTML 查看器——带点击跳转溯源的钉住面板属于里程碑 m3；v0.1 输出 JSON 与终端面板。"
+      "en": "The pinned single-file HTML viewer ships in lastword view: the verdict pinned over the full transcript, click-to-jump provenance, inline CSS, no CDN.",
+      "zh": "钉住式单文件 HTML 查看器已随 lastword view 交付：结论钉在完整会话之上、点击跳转溯源、内联 CSS、无 CDN。"
     },
     {
       "en": "Extraction is deterministic by design: no LLM-generated summaries, no interpretation; a span claims only what the transcript objectively contains.",

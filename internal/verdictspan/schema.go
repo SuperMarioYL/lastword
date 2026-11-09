@@ -52,8 +52,8 @@ type Change struct {
 
 // Result is the last observed outcome of one distinct command. Claude Code
 // tool_result blocks carry no structured exit code, so OK mirrors is_error
-// and ExitCode is set only when the result text prints "Exit code N".
-// ExitCode is nil when no code was printed.
+// and ExitCode is set only when a failed result's text prints "Exit code N".
+// ExitCode is nil otherwise, including for passing results.
 type Result struct {
 	Kind     string `json:"kind"` // always "command" in v0
 	Cmd      string `json:"cmd"`

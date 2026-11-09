@@ -260,6 +260,43 @@ func TestExtractMinimalFixture(t *testing.T) {
 	}
 }
 
+func TestSnippetStaysContiguous(t *testing.T) {
+	// A snippet must be a contiguous run of lines. Skipping a blank line and
+	// re-joining its neighbours fabricated a string no turn contains, so the
+	// span failed the pointer_resolution check the same binary runs.
+	for name, tc := range map[string]struct{ text, want string }{
+		"paragraph break":   {"Found it.\n\nEditing the cache key now.", "Found it."},
+		"leading blank":     {"\n\nFound it.\n\nEditing now.", "Found it."},
+		"two text blocks":   {"Tracing the refresh path.\n\nNow patching the key.", "Tracing the refresh path."},
+		"two contiguous":    {"line one\nline two\n\nlater paragraph", "line one\nline two"},
+		"single line":       {"Found it.", "Found it."},
+		"result blank line": {"ok\tpkg/auth\t0.5s\n\nok\tpkg/api\t1.2s", "ok\tpkg/auth\t0.5s"},
+		"only blank lines":  {"\n\n   \n", ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := snippet(tc.text); got != tc.want {
+				t.Errorf("snippet(%q) = %q, want %q", tc.text, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestExtractIgnoresExitCodeOnSuccess(t *testing.T) {
+	// A passing command whose output merely mentions a historical failure
+	// must not claim that code: {"ok": true, "exit_code": 1} contradicts
+	// itself and violates the spec's failure-only rule.
+	b := &turnBuilder{}
+	b.add("assistant", "", []transcript.ToolUse{bashUse("c1", "grep -n 'Exit code' ci.log")}, nil)
+	b.add("user", "", nil, []transcript.ToolResult{
+		resultFor("c1", "12:Exit code 1\n88:Exit code 2", false),
+	})
+	span := Extract(&transcript.Session{ID: "s1", Turns: b.turns})
+	res := span.Answer.Results[0]
+	if !res.OK || res.ExitCode != nil {
+		t.Errorf("result = %+v, want ok with a null exit code", res)
+	}
+}
+
 func TestSnippetTruncatesAtRuneBoundary(t *testing.T) {
 	// A byte-indexed cut used to split multi-byte runes: 118 ASCII bytes
 	// then CJK put the old 120-BYTE cap inside a rune, and encoding/json

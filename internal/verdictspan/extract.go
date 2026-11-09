@@ -93,10 +93,15 @@ func Extract(s *transcript.Session) *Span {
 				continue
 			}
 			outcome := Result{
-				Kind:     "command",
-				Cmd:      cmd,
-				OK:       !res.IsError,
-				ExitCode: parseExitCode(res.Content),
+				Kind: "command",
+				Cmd:  cmd,
+				OK:   !res.IsError,
+			}
+			// Only a failed result prints an exit code; a passing command
+			// whose output merely mentions one ("Exit code 1" in a log it
+			// grepped) must not claim it, or the entry contradicts itself.
+			if res.IsError {
+				outcome.ExitCode = parseExitCode(res.Content)
 			}
 			idx, seen := resultAt[cmd]
 			if !seen {
@@ -200,9 +205,9 @@ func lineCount(s string) int {
 	return len(strings.Split(strings.TrimSuffix(s, "\n"), "\n"))
 }
 
-// parseExitCode reads an exit code out of result free text. Bash failures
-// usually print "Exit code N"; successes and some failures print none, in
-// which case there is nothing to report and the field stays null.
+// parseExitCode reads an exit code out of a failed result's free text. Bash
+// failures usually print "Exit code N"; successes and some failures print
+// none, in which case there is nothing to report and the field stays null.
 func parseExitCode(content string) *int {
 	m := exitCodeRe.FindStringSubmatch(content)
 	if m == nil {
@@ -215,14 +220,19 @@ func parseExitCode(content string) *int {
 	return &n
 }
 
-// snippet quotes the first two non-empty lines of a turn's content, hard
-// truncated at snippetWidth characters. The cap counts runes, not bytes: a
-// byte-indexed cut would split a multi-byte rune and corrupt the "verbatim"
-// quote the format promises.
+// snippet quotes the first contiguous run of up to two non-empty lines of a
+// turn's content, hard truncated at snippetWidth characters. A blank line
+// inside the quote ends it: the snippet must stay a contiguous, verbatim
+// substring of its source, which is the containment pointer_resolution
+// enforces. The cap counts runes, not bytes: a byte-indexed cut would split a
+// multi-byte rune and corrupt the "verbatim" quote the format promises.
 func snippet(text string) string {
 	var kept []string
 	for _, l := range strings.Split(text, "\n") {
 		if strings.TrimSpace(l) == "" {
+			if len(kept) > 0 {
+				break // a blank line ends the contiguous quote
+			}
 			continue
 		}
 		kept = append(kept, l)

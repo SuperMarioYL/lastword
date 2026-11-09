@@ -152,6 +152,40 @@ func TestVerifyTruncatedSnippetMissingFromTurn(t *testing.T) {
 	}
 }
 
+func TestVerifyNarratedMultiParagraphEditResolves(t *testing.T) {
+	// A narrated edit turn whose narration has a paragraph break used to
+	// quote two non-adjacent lines, so Extract emitted a snippet that its
+	// own verify rejected. The quote is now the first contiguous run.
+	b := &turnBuilder{}
+	b.add("user", "fix it", nil, nil)
+	b.add("assistant", "Found it.\n\nPatching the cache key now.", []transcript.ToolUse{
+		editUse("e1", "src/token.go", "a\nb", "a\nc"),
+	}, nil)
+	s := &transcript.Session{ID: "s1", Turns: b.turns}
+	span := Extract(s)
+	if got := span.Pointers[1].Snippet; got != "Found it." {
+		t.Errorf("edit snippet = %q, want the first paragraph only", got)
+	}
+	if c := findCheck(t, Verify(s, span), CheckPointerResolution); !c.Pass {
+		t.Errorf("pointer_resolution = %+v, want the multi-paragraph narration to resolve", c)
+	}
+}
+
+func TestVerifyEdgesFixtureClean(t *testing.T) {
+	// The bundled edge-case fixture (sidechain skips, retried command,
+	// blank-line-separated payloads) must verify clean: a shipped fixture
+	// that fails its own check is the bug this pins.
+	s, err := transcript.Load("../../testdata/sessions/session-edges.jsonl")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	for _, c := range Verify(s, Extract(s)) {
+		if !c.Pass {
+			t.Errorf("%s = %+v, want pass on the bundled edges fixture", c.Name, c)
+		}
+	}
+}
+
 func TestVerifyEmptySnippetIsVacuous(t *testing.T) {
 	// The recorded demo carries an empty result snippet (gofmt prints
 	// nothing). An empty quote asserts nothing, so it cannot be violated.

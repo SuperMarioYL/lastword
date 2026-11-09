@@ -63,6 +63,10 @@ jobs:
           set -euo pipefail
           /tmp/lastword verify testdata/sessions/session-500turn.jsonl \
             | grep -F "verdict: PASS"
+          # The edge fixture carries the shapes that used to break the quote:
+          # blank-line-separated payloads, a retried command, sidechain skips.
+          /tmp/lastword verify testdata/sessions/session-edges.jsonl \
+            | grep -F "verdict: PASS"
           /tmp/lastword verify --format json testdata/sessions/session-500turn.jsonl \
             | grep -F '"pass": true'
 

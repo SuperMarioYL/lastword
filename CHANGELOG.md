@@ -4,6 +4,40 @@ All notable changes to LastWord are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-11-10
+
+### Fixed
+
+- Pointer snippets are contiguous verbatim quotes again. The quote builder
+  kept the first two non-empty lines and rejoined them with a single newline
+  after dropping the blank line between them, so a turn that narrated in two
+  paragraphs (or in two text blocks, which the parser joins with a blank
+  line) produced a snippet no turn contains — and `lastword verify` then
+  rejected a span that `lastword verdict` had just extracted, including on
+  the bundled `testdata/sessions/session-edges.jsonl` fixture (4/5 pointers
+  resolved). The quote now ends at the first blank line, so it is always a
+  contiguous run of lines from its source. ASCII single-paragraph quotes are
+  byte-identical; the 500-turn span is unchanged.
+- A parsed exit code is claimed only for failed commands. A passing command
+  whose output merely mentioned a historical failure used to report
+  `"ok": true` together with a non-null `exit_code`; the format already says
+  the code is parsed "only when a failure prints one", and the terminal panel
+  always treated it that way.
+
+### Changed
+
+- The site content and the format reference now describe what v0.2 shipped:
+  `lastword verify` fills the checks and exits 0/1, and `lastword view`
+  writes the pinned single-file HTML viewer. The previous text still called
+  both "milestones m2 and m3", said the checks were "defined but not yet
+  evaluated", and showed a recorded panel line ("verify arrives with
+  milestone m2") the binary no longer prints. The format reference no longer
+  pins a product version and no longer names internal milestones.
+- Added a version-lockstep regression test: every release surface (VERSION,
+  the binary's compiled default, the newest CHANGELOG heading, both README
+  badges and demo captions, the recorded demo version, both site version
+  keys) must equal `VERSION`.
+
 ## [0.2.0] — 2026-10-12
 
 ### Added
